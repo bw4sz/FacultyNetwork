@@ -117,3 +117,5 @@ Within each department.
 * I could build a interesting little shiny server which shows a network and allows people to add themselves into each department. Great for a job talk.
 
 * Specialization compared to the overall pool of researchers. Where do we see aggregations of like-minded scientists? Does chicago really have more theoriticians than elsewhere? 
+
+
