@@ -23,17 +23,17 @@ Using tools from network ecology, we can begin to examine patterns of colloborat
 ```{r,echo=F,warning=FALSE,message=FALSE}
 #load libraries
 library(XML)
-library(rpubmed)
 library(stringr)
 library(RCurl)
 library(wordcloud)
 library(tm)
-require(reshape)
-require(sna)
-require(bipartite)
-require(dplyr)
-require(stringr)
+library(reshape2)
+library(sna)
+library(bipartite)
+library(dplyr)
+library(stringr)
 library(knitr)
+library(rentrez)
 opts_chunk$set(fig.width=10,cache=TRUE,warning=F,message=F,echo=F)
 ```
 
@@ -42,7 +42,7 @@ opts_chunk$set(fig.width=10,cache=TRUE,warning=F,message=F,echo=F)
 Scrape the subcategory data from google scholar page, not the search engine, they don't allow that!
 [Link](http://scholar.google.com/citations?view_op=top_venues&hl=en&vq=bio)
 
-```{r}
+```{r,eval=FALSE}
 URLS<-c(
   "http://scholar.google.com/citations?view_op=top_venues&hl=en&vq=bio_agronomycropscience",
   "http://scholar.google.com/citations?view_op=top_venues&hl=en&vq=bio_animalbehavior",
@@ -105,10 +105,18 @@ head(j_class)
 
 jc<-as.data.frame(table(j_class$Class))
 colnames(jc)<-c("Category","N")
-kable(jc)
 
-write.csv("j_class","Class.csv")
+write.csv(j_class,"Class.csv")
 ```
+
+```{r}
+#If reading in from file.
+j_class<-read.csv("Class.csv")
+jc<-as.data.frame(table(j_class$Class))
+colnames(jc)<-c("Category","N")
+kable(jc)
+```
+
 
 #Lists of Academic Departments
 
@@ -116,13 +124,63 @@ Scraping from [here](http://www.nescent.org/eog/graduateprogdatabase.php?orderby
 
 125 Departments in the US.
 
-```{r}
+```{r,eval=FALSE}
 xtab= readHTMLTable("http://www.nescent.org/eog/graduateprogdatabase.php?orderby=PhD&order=asc", header=T, which=1,stringsAsFactors=F)[,-1]
 depts<-xtab[,-c(5,6)]
-kable(head(depts))
 write.csv(depts,"depts.csv")
 ```
 
-#Search pubmed
+```{r}
+#If reading in from file
+depts<-read.csv("depts.csv")
+kable(head(depts))
+```
 
-Let's begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the rpubmed package (thanks RopenSCI!!) and i want to give it a try. 
+#Associate faculty with a given department
+
+I could either do this by scraping individual faculty pages (hard) or using crossref to better describe affilication.
+
+#Search pubmed (scopus?) for articles
+
+Let's begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the rentrez package (thanks RopenSCI!) and i want to give it a try. 
+
+```{r}
+katipo <- "Stony+Brook[affiliation]"
+katipo_search <- entrez_search(db="pubmed", term=katipo)
+doc <- entrez_fetch(db="pubmed", id=katipo_search$ids, rettype="xml")
+f<-xmlToList(doc)
+
+#Journal
+article_journal<-sapply(f,function(x){
+  x$MedlineCitation$Article$Journal$Title
+})
+
+#Institution
+article_affiliation<-sapply(f,function(x){
+x$MedlineCitation$Article$AuthorList$Author$AffiliationInfo$Affiliation
+})
+
+```
+
+A couple annoying things i've found so far
+
+* Pubmed just gives first author affiliation.
+* The coverage of ecology of journals is weak.
+
+# Create network
+
+* Associate each journal article with a faculty member, then a department. Use the categories from step 1 to describe each faculty member as to which discipline they fall into. 
+
+# Network analysis
+
+It would be interesting to look at a number of ideas.
+
+Within each department.
+
+* Degree of niche overlap and compartmentalization in departments. How similiar are faculty members? 
+
+* Forbidden links: are there certain kinds of people which are never in the same faculty, this could highlight areas of potential growth. Like wood science and evolutionary biology. Test co-occurrence rates against a null model of richness and find which combinations occur less often then chance.
+
+* I could build a interesting little shiny server which shows a network and allows people to add themselves into each department. Great for a job talk.
+
+* Specialization compared to the overall pool of researchers. Where do we see aggregations of like-minded scientists? Does chicago really have more theoriticians than elsewhere? 

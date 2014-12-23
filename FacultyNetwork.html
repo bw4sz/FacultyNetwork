@@ -63,7 +63,10 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <li><a href="#approach"><span class="toc-section-number">2</span> Approach</a></li>
 <li><a href="#list-of-journals-and-disciplines"><span class="toc-section-number">3</span> List of journals and disciplines</a></li>
 <li><a href="#lists-of-academic-departments"><span class="toc-section-number">4</span> Lists of Academic Departments</a></li>
-<li><a href="#search-pubmed"><span class="toc-section-number">5</span> Search pubmed</a></li>
+<li><a href="#associate-faculty-with-a-given-department"><span class="toc-section-number">5</span> Associate faculty with a given department</a></li>
+<li><a href="#search-pubmed-scopus-for-articles"><span class="toc-section-number">6</span> Search pubmed (scopus?) for articles</a></li>
+<li><a href="#create-network"><span class="toc-section-number">7</span> Create network</a></li>
+<li><a href="#network-analysis"><span class="toc-section-number">8</span> Network analysis</a></li>
 </ul>
 </div>
 
@@ -84,75 +87,262 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <div id="list-of-journals-and-disciplines" class="section level1">
 <h1><span class="header-section-number">3</span> List of journals and disciplines</h1>
 <p>Scrape the subcategory data from google scholar page, not the search engine, they don’t allow that! <a href="http://scholar.google.com/citations?view_op=top_venues&amp;hl=en&amp;vq=bio">Link</a></p>
-<pre><code>##                 Class                      Publication h5.index h5.median
-## 1 Agronomycropscience                   Plant and Soil       55        75
-## 2 Agronomycropscience Theoretical and Applied Genetics       52        62
-## 3 Agronomycropscience      Plant Biotechnology Journal       45        71
-## 4 Agronomycropscience    Agricultural Water Management       45        54
-## 5 Agronomycropscience             Field Crops Research       42        56
-## 6 Agronomycropscience        Soil and Tillage Research       41        53</code></pre>
-<pre><code>## 
-## 
-## |Category                           |  N|
-## |:----------------------------------|--:|
-## |Agronomycropscience                | 20|
-## |Animalbehavior                     | 20|
-## |Animalhusbandry                    | 20|
-## |Atmosphericsciences                | 20|
-## |Biochemistry                       | 20|
-## |Biodiversityconservationbiology    | 20|
-## |Biogeneral                         | 20|
-## |Bioinformatics                     | 20|
-## |Biophysics                         | 20|
-## |Biotechnology                      | 20|
-## |Birds                              | 20|
-## |Botany                             | 20|
-## |Cellbiology                        | 20|
-## |Developmentalbiologyembryology     | 20|
-## |Ecology                            | 20|
-## |Environmentalgeologicalengineering | 20|
-## |Environmentalsciences              | 20|
-## |Evolutionarybiology                | 20|
-## |Foodsciencetechnology              | 20|
-## |Forestsforestry                    | 20|
-## |Geochemistrymineralogy             | 20|
-## |Geology                            | 20|
-## |Hydrology                          | 20|
-## |Insectsarthropods                  | 20|
-## |Marinesciencesfisheries            | 20|
-## |Microbiology                       | 20|
-## |Molecularbiology                   | 20|
-## |Mycology                           | 20|
-## |Oceanography                       | 20|
-## |Paleontology                       | 20|
-## |Pestcontrolpesticides              | 20|
-## |Plantpathology                     | 20|
-## |Proteomicspeptides                 | 20|
-## |Soilsciences                       | 20|
-## |Sustainabledevelopment             | 20|
-## |Sustainableenergy                  | 20|
-## |Virology                           | 20|
-## |Woodsciencetechnology              | 20|
-## |Zoology                            | 20|</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Category</th>
+<th align="right">N</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Agronomycropscience</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Animalbehavior</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Animalhusbandry</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Atmosphericsciences</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Biochemistry</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Biodiversityconservationbiology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Biogeneral</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Bioinformatics</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Biophysics</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Biotechnology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Birds</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Botany</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Cellbiology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Developmentalbiologyembryology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Ecology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Environmentalgeologicalengineering</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Environmentalsciences</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Evolutionarybiology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Foodsciencetechnology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Forestsforestry</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Geochemistrymineralogy</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Geology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Hydrology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Insectsarthropods</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Marinesciencesfisheries</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Microbiology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Molecularbiology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Mycology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Oceanography</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Paleontology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Pestcontrolpesticides</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Plantpathology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Proteomicspeptides</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Soilsciences</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Sustainabledevelopment</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Sustainableenergy</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Virology</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Woodsciencetechnology</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">Zoology</td>
+<td align="right">20</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="lists-of-academic-departments" class="section level1">
 <h1><span class="header-section-number">4</span> Lists of Academic Departments</h1>
 <p>Scraping from <a href="http://www.nescent.org/eog/graduateprogdatabase.php?orderby=PhD&amp;order=asc">here</a></p>
 <p>125 Departments in the US.</p>
-<pre><code>## 
-## 
-## |Institution                                      |City         |State |Program                                       |
-## |:------------------------------------------------|:------------|:-----|:---------------------------------------------|
-## |Boise State University                           |Boise        |ID    |Biology                                       |
-## |California State Polytechnic University - Pomona |Pomona       |CA    |Biological Sciences                           |
-## |College Of Staten Island, CCNY                   |New York     |NY    |Biology                                       |
-## |College Of William And Mary                      |Williamsburg |VA    |Biology                                       |
-## |Colorado State University                        |Fort Collins |CO    |Biology                                       |
-## |Columbia University                              |New York     |NY    |Ecology, Evolution, and Environmental Biology |</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">X</th>
+<th align="left">Institution</th>
+<th align="left">City</th>
+<th align="left">State</th>
+<th align="left">Program</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">Boise State University</td>
+<td align="left">Boise</td>
+<td align="left">ID</td>
+<td align="left">Biology</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">California State Polytechnic University - Pomona</td>
+<td align="left">Pomona</td>
+<td align="left">CA</td>
+<td align="left">Biological Sciences</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">College Of Staten Island, CCNY</td>
+<td align="left">New York</td>
+<td align="left">NY</td>
+<td align="left">Biology</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">College Of William And Mary</td>
+<td align="left">Williamsburg</td>
+<td align="left">VA</td>
+<td align="left">Biology</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="left">Colorado State University</td>
+<td align="left">Fort Collins</td>
+<td align="left">CO</td>
+<td align="left">Biology</td>
+</tr>
+<tr class="even">
+<td align="right">6</td>
+<td align="left">Columbia University</td>
+<td align="left">New York</td>
+<td align="left">NY</td>
+<td align="left">Ecology, Evolution, and Environmental Biology</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div id="search-pubmed" class="section level1">
-<h1><span class="header-section-number">5</span> Search pubmed</h1>
-<p>Let’s begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the rpubmed package (thanks RopenSCI!!) and i want to give it a try.</p>
+<div id="associate-faculty-with-a-given-department" class="section level1">
+<h1><span class="header-section-number">5</span> Associate faculty with a given department</h1>
+<p>I could either do this by scraping individual faculty pages (hard) or using crossref to better describe affilication.</p>
+</div>
+<div id="search-pubmed-scopus-for-articles" class="section level1">
+<h1><span class="header-section-number">6</span> Search pubmed (scopus?) for articles</h1>
+<p>Let’s begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the rentrez package (thanks RopenSCI!) and i want to give it a try.</p>
+<p>A couple annoying things i’ve found so far</p>
+<ul>
+<li>Pubmed just gives first author affiliation.</li>
+<li>The coverage of ecology of journals is weak.</li>
+</ul>
+</div>
+<div id="create-network" class="section level1">
+<h1><span class="header-section-number">7</span> Create network</h1>
+<ul>
+<li>Associate each journal article with a faculty member, then a department. Use the categories from step 1 to describe each faculty member as to which discipline they fall into.</li>
+</ul>
+</div>
+<div id="network-analysis" class="section level1">
+<h1><span class="header-section-number">8</span> Network analysis</h1>
+<p>It would be interesting to look at a number of ideas.</p>
+<p>Within each department.</p>
+<ul>
+<li><p>Degree of niche overlap and compartmentalization in departments. How similiar are faculty members?</p></li>
+<li><p>Forbidden links: are there certain kinds of people which are never in the same faculty, this could highlight areas of potential growth. Like wood science and evolutionary biology. Test co-occurrence rates against a null model of richness and find which combinations occur less often then chance.</p></li>
+<li><p>I could build a interesting little shiny server which shows a network and allows people to add themselves into each department. Great for a job talk.</p></li>
+<li><p>Specialization compared to the overall pool of researchers. Where do we see aggregations of like-minded scientists? Does chicago really have more theoriticians than elsewhere?</p></li>
+</ul>
 </div>
 
 
