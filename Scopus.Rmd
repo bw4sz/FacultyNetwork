@@ -1,0 +1,176 @@
+---
+title: "Faculty Niche"
+author: "Ben Weinstein"
+date: "Saturday, November 01, 2014"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    keep_md: true
+---
+
+#Approach
+
+  * Query Articles
+    * Format Data
+  * Define Authors by ID
+  * Characterize journals
+  * Define Author Niche
+  * Calculate Niche Overlap
+    * Within institution
+    * For a given article
+  * Question 1: Model Fitting: Are articles by specialist or generalist more cited?
+  * Question 2: Level of academic specialization within departments
+  
+#Hypotheses
+
+  * Articles by highly similiar authors with high niche overlap will be higher cited due intense domain-specific knowledge
+  * Articles by authors with low niche overlap will be higher cited due to novel insights
+  
+  
+#Basic Query Search
+
+```{r}
+library(XML)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(httr)
+library(stringr)
+library(chron)
+```
+
+##Test query
+
+Here is the base url; http://api.elsevier.com/content/search/scopus
+*query=the main query with descriptors.
+
+The descriptors are ennumerated here:
+http://api.elsevier.com/content/search/fields/scopus
+
+Get all articles by author Ben Weinstein
+
+The boolean escapes are + and parenthesis need to be %28 and %29
+```{r}
+#format string
+query<-"query=affil(Stony+Brook)"
+
+#url encoding
+#reform query to html encoded
+queryF<-gsub(x=query,"\\(","%28")
+queryF<-gsub(x=queryF,"\\)","%29")
+queryF<-gsub(x=queryF,"\\+","%20")
+
+queryF
+```
+
+###Query Parameters
+*httpAccept=application/xml returns an xml result
+Add my api key
+
+Institution token - cannot be viewed in browser, save in file outside of git.
+```{r}
+inst.token<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/InstToken.txt")
+apiKey<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/apikey.txt")
+```
+
+
+```{r}
+#format string
+str<-"https://api.elsevier.com/content/search/scopus?&subj=AGRI&httpAccept=application/xml&count=20&subj=1105"
+
+#fields
+f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate"
+```
+
+##Build queries
+
+  * Arguments
+  * Desired fields
+  * Query terms
+  
+It's easiest to bind these together seperately, to create one long call
+
+We need to know author, affiliation, publication name, and citation count
+
+```{r}
+toget<-paste(str,queryF,sep="&")
+
+#add in api and institutional key
+toget<-paste(toget,"&apiKey=",apiKey,sep="")
+#toget<-paste(toget,"&insttoken=",inst.token,sep="")
+
+#add fields
+toget<-paste(toget,f,sep="&")
+
+```
+
+Request query
+```{r}
+#call
+response <- GET(toget)
+```
+
+Parse
+
+```{r}
+xml <- xmlInternalTreeParse(response)
+
+#define name spaces
+nsDefs<-xmlNamespaceDefinitions(xmltop)
+ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
+
+names(ns)[1] <- "xmlns"
+
+xmltop = xmlRoot(xml) #gives content of root
+class(xmltop)#"XMLInternalElementNode" "XMLInternalNode" "XMLAbstractNode"
+xmlName(xmltop) #give name of node
+xmlSize(xmltop) #how many children in node
+xmlName(xmltop[[1]]) #name of root's children
+```
+
+#Format Results
+
+##Get journal
+
+```{r}
+#get
+journal<-xpathSApply(xmltop,"//prism:publicationName",xmlValue,namespaces=ns)
+```
+
+##Get first author
+
+List with a position for each article
+
+```{r}
+authors<-xpathSApply(xmltop,"//dc:creator",xmlValue,namespaces=ns)
+```
+
+##Affiliation
+
+```{r}
+aff<-xpathSApply(xmltop,"//xmlns:entry//xmlns:affilname[1]",xmlValue,namespaces=ns)
+```
+
+##Citation Count
+
+```{r}
+citation<-xpathSApply(xmltop,"//xmlns:entry//xmlns:citedby-count",xmlValue,namespaces=ns)
+```
+
+##Year
+
+```{r}
+Year<-years(xpathSApply(xmltop,"//xmlns:entry//prism:coverDate",xmlValue,namespaces=ns))
+```
+
+
+Bind into a data.frame
+
+```{r}
+#affiliation only has 18 records
+df<-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year)
+```
+
+

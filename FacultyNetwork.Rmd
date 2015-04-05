@@ -34,7 +34,8 @@ library(bipartite)
 library(dplyr)
 library(stringr)
 library(knitr)
-library(rentrez)
+library(fulltext)
+library(rcrossref)
 opts_chunk$set(fig.width=10,cache=TRUE,warning=F,message=F,echo=F)
 ```
 
@@ -137,36 +138,46 @@ depts<-read.csv("depts.csv")
 kable(head(depts))
 ```
 
-#Associate faculty with a given department
+#Search for articles
 
-I could either do this by scraping individual faculty pages (hard) or using crossref to better describe affilication.
-
-#Search pubmed (scopus?) for articles
-
-Let's begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the rentrez package (thanks RopenSCI!) and i want to give it a try. 
+Let's begin slowly. I want to search an affiliation for any of the journal titles i have in my categories. I found the full_text package and i want to give it a try. 
 
 ```{r}
-katipo <- "Stony+Brook[affiliation]"
-katipo_search <- entrez_search(db="pubmed", term=katipo)
-doc <- entrez_fetch(db="pubmed", id=katipo_search$ids, rettype="xml")
-f<-xmlToList(doc)
-
-#Journal
-article_journal<-sapply(f,function(x){
-  x$MedlineCitation$Article$Journal$Title
-})
-
-#Institution
-article_affiliation<-sapply(f,function(x){
-x$MedlineCitation$Article$AuthorList$Author$AffiliationInfo$Affiliation
-})
+q <- "Ben G. Weinstein"
+s<-ft_search(q, limit=500, plosopts=list(fl=c('author','journal')))
 
 ```
 
-A couple annoying things i've found so far
+#Find authors
 
-* Pubmed just gives first author affiliation.
-* The coverage of ecology of journals is weak.
+The simplest thing to do here is to split the author lists into pieces and do a frequency table to find potential authors.
+
+```{r}
+s$crossref$data$container.title
+
+```
+
+###Alternative strategy
+
+Try search first by journal name and matching it to our journal lists
+
+```{r}
+jout<-lapply(j_class$Publication[1:10],function(x){
+out <- ft_providers(as.character(x))$data
+})
+
+#remove null results
+jout<-jout[sapply(jout,nrow)>0]
+jout<-rbind_all(jout)
+```
+
+#Find papers from those journals
+
+```{r}
+getj<-cr_journals(issn=jout[1,]$issn)
+getj<-cr_journals(issn="2167-8359", query='ecology', works=TRUE, sort='score', order="desc")
+
+```
 
 # Create network
 
