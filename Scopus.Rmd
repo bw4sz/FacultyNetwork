@@ -26,7 +26,19 @@ output:
 
   * Articles by highly similiar authors with high niche overlap will be higher cited due intense domain-specific knowledge
   * Articles by authors with low niche overlap will be higher cited due to novel insights
-  
+
+#Journal Classifications
+
+```{r}
+#read in data
+j_class<-read.csv("Class.csv",row.names=1)
+
+#collapse into a string, formatting spaces with + and place a boolean OR in between each
+serial<-j_class$Publication
+s<-gsub(x=serial,replacement="\\+",pattern=" ")
+serials<-paste(s,collapse="OR")
+```
+
   
 #Basic Query Search
 
@@ -39,6 +51,7 @@ library(reshape2)
 library(httr)
 library(stringr)
 library(chron)
+library(vegan)
 ```
 
 ##Test query
@@ -54,7 +67,7 @@ Get all articles by author Ben Weinstein
 The boolean escapes are + and parenthesis need to be %28 and %29
 ```{r}
 #format string
-query<-"query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+AND+auth(Graham+C)+OR+auth(Lynch,H)+OR+auth(Baines,S)"
+query<-"query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+Ecology+Evolution"
 
 #url encoding
 #reform query to html encoded
@@ -234,12 +247,6 @@ copy_to(my_db, authdf, temporary = FALSE,name="Authors")
 ```
 
 ##Update Results
-#Journal Classifications
-
-```{r}
-#If reading in from file.
-j_class<-read.csv("Class.csv",row.names=1)
-```
 
 #Academic departments
 #If reading in from file
@@ -260,7 +267,38 @@ artmatch<-artdf[artdf$Journal %in% j_class$Publication,]
 dat<-droplevels(merge(authdf,artmatch))
 ```
 
-##Build dissimilarity matrix
+##Filter Authors
+
 ```{r}
-table(dat$Author))
+sort(table(dat$Author))
+#Cutoff for articles, atleast 5 in my little example
+keep<-names(which(table(dat$Author)>2))
+
+head(dat)
+tocompare<-droplevels(dat[dat$Author %in% keep,])
 ```
+
+#Build Dissimilarity matrix
+
+Merge table classification
+```{r}
+#append journal classifier
+tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication"))
+siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
+#remove empty colums
+```
+
+##Biplot
+```{r}
+biplot(prcomp(siteXspp,scale=T))
+```
+
+##Niche Overlap
+Horn's distance between authors
+
+```{r}
+dis<-vegdist(siteXspp,"horn")
+dis
+```
+
+

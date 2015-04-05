@@ -61,22 +61,32 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <ul>
 <li><a href="#approach"><span class="toc-section-number">1</span> Approach</a></li>
 <li><a href="#hypotheses"><span class="toc-section-number">2</span> Hypotheses</a></li>
-<li><a href="#basic-query-search"><span class="toc-section-number">3</span> Basic Query Search</a><ul>
-<li><a href="#test-query"><span class="toc-section-number">3.1</span> Test query</a><ul>
-<li><a href="#query-parameters"><span class="toc-section-number">3.1.1</span> Query Parameters</a></li>
+<li><a href="#journal-classifications"><span class="toc-section-number">3</span> Journal Classifications</a></li>
+<li><a href="#basic-query-search"><span class="toc-section-number">4</span> Basic Query Search</a><ul>
+<li><a href="#test-query"><span class="toc-section-number">4.1</span> Test query</a><ul>
+<li><a href="#query-parameters"><span class="toc-section-number">4.1.1</span> Query Parameters</a></li>
 </ul></li>
-<li><a href="#build-queries"><span class="toc-section-number">3.2</span> Build queries</a></li>
+<li><a href="#build-queries"><span class="toc-section-number">4.2</span> Build queries</a></li>
 </ul></li>
-<li><a href="#format-results"><span class="toc-section-number">4</span> Format Results</a><ul>
-<li><a href="#get-journal"><span class="toc-section-number">4.1</span> Get journal</a></li>
-<li><a href="#get-first-author"><span class="toc-section-number">4.2</span> Get first author</a></li>
-<li><a href="#all-authors"><span class="toc-section-number">4.3</span> All authors</a></li>
-<li><a href="#affiliation"><span class="toc-section-number">4.4</span> Affiliation</a></li>
-<li><a href="#citation-count"><span class="toc-section-number">4.5</span> Citation Count</a></li>
-<li><a href="#year"><span class="toc-section-number">4.6</span> Year</a></li>
+<li><a href="#format-results"><span class="toc-section-number">5</span> Format Results</a><ul>
+<li><a href="#get-journal"><span class="toc-section-number">5.1</span> Get journal</a></li>
+<li><a href="#get-first-author"><span class="toc-section-number">5.2</span> Get first author</a></li>
+<li><a href="#all-authors"><span class="toc-section-number">5.3</span> All authors</a></li>
+<li><a href="#affiliation"><span class="toc-section-number">5.4</span> Affiliation</a></li>
+<li><a href="#citation-count"><span class="toc-section-number">5.5</span> Citation Count</a></li>
+<li><a href="#year"><span class="toc-section-number">5.6</span> Year</a></li>
 </ul></li>
-<li><a href="#storing-results"><span class="toc-section-number">5</span> Storing Results</a><ul>
-<li><a href="#update-results"><span class="toc-section-number">5.1</span> Update Results</a></li>
+<li><a href="#storing-results"><span class="toc-section-number">6</span> Storing Results</a><ul>
+<li><a href="#update-results"><span class="toc-section-number">6.1</span> Update Results</a></li>
+</ul></li>
+<li><a href="#academic-departments"><span class="toc-section-number">7</span> Academic departments</a></li>
+<li><a href="#if-reading-in-from-file"><span class="toc-section-number">8</span> If reading in from file</a></li>
+<li><a href="#match-journal-to-classification"><span class="toc-section-number">9</span> Match journal to classification</a><ul>
+<li><a href="#filter-authors"><span class="toc-section-number">9.1</span> Filter Authors</a></li>
+</ul></li>
+<li><a href="#build-dissimilarity-matrix"><span class="toc-section-number">10</span> Build Dissimilarity matrix</a><ul>
+<li><a href="#biplot"><span class="toc-section-number">10.1</span> Biplot</a></li>
+<li><a href="#niche-overlap"><span class="toc-section-number">10.2</span> Niche Overlap</a></li>
 </ul></li>
 </ul>
 </div>
@@ -107,8 +117,18 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 <li>Articles by authors with low niche overlap will be higher cited due to novel insights</li>
 </ul>
 </div>
+<div id="journal-classifications" class="section level1">
+<h1><span class="header-section-number">3</span> Journal Classifications</h1>
+<pre class="r"><code>#read in data
+j_class&lt;-read.csv(&quot;Class.csv&quot;,row.names=1)
+
+#collapse into a string, formatting spaces with + and place a boolean OR in between each
+serial&lt;-j_class$Publication
+s&lt;-gsub(x=serial,replacement=&quot;\\+&quot;,pattern=&quot; &quot;)
+serials&lt;-paste(s,collapse=&quot;OR&quot;)</code></pre>
+</div>
 <div id="basic-query-search" class="section level1">
-<h1><span class="header-section-number">3</span> Basic Query Search</h1>
+<h1><span class="header-section-number">4</span> Basic Query Search</h1>
 <pre class="r"><code>library(XML)
 library(plyr)
 library(dplyr)</code></pre>
@@ -131,15 +151,19 @@ library(dplyr)</code></pre>
 library(reshape2)
 library(httr)
 library(stringr)
-library(chron)</code></pre>
+library(chron)
+library(vegan)</code></pre>
+<pre><code>## Loading required package: permute
+## Loading required package: lattice
+## This is vegan 2.2-0</code></pre>
 <div id="test-query" class="section level2">
-<h2><span class="header-section-number">3.1</span> Test query</h2>
+<h2><span class="header-section-number">4.1</span> Test query</h2>
 <p>Here is the base url; <a href="http://api.elsevier.com/content/search/scopus">http://api.elsevier.com/content/search/scopus</a> *query=the main query with descriptors.</p>
 <p>The descriptors are ennumerated here: <a href="http://api.elsevier.com/content/search/fields/scopus">http://api.elsevier.com/content/search/fields/scopus</a></p>
 <p>Get all articles by author Ben Weinstein</p>
 <p>The boolean escapes are + and parenthesis need to be %28 and %29</p>
 <pre class="r"><code>#format string
-query&lt;-&quot;query=affil(Stony+Brook)+AND+SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)&quot;
+query&lt;-&quot;query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+Ecology+Evolution&quot;
 
 #url encoding
 #reform query to html encoded
@@ -148,22 +172,22 @@ queryF&lt;-gsub(x=queryF,&quot;\\)&quot;,&quot;%29&quot;)
 queryF&lt;-gsub(x=queryF,&quot;\\+&quot;,&quot;%20&quot;)
 
 queryF</code></pre>
-<pre><code>## [1] &quot;query=affil%28Stony%20Brook%29%20AND%20SUBJAREA%28AGRI%29%20OR%20SUBJAREA%28ENVI%29&quot;</code></pre>
+<pre><code>## [1] &quot;query=SUBJAREA%28AGRI%29%20OR%20SUBJAREA%28ENVI%29%20AND%20affil%28Stony%20Brook%20University%29%20Ecology%20Evolution&quot;</code></pre>
 <div id="query-parameters" class="section level3">
-<h3><span class="header-section-number">3.1.1</span> Query Parameters</h3>
+<h3><span class="header-section-number">4.1.1</span> Query Parameters</h3>
 <p>*httpAccept=application/xml returns an xml result Add my api key</p>
 <p>Institution token - cannot be viewed in browser, save in file outside of git.</p>
 <pre class="r"><code>inst.token&lt;-readLines(&quot;C:/Users/Ben/Dropbox/FacultyNetwork/InstToken.txt&quot;)
 apiKey&lt;-readLines(&quot;C:/Users/Ben/Dropbox/FacultyNetwork/apikey.txt&quot;)</code></pre>
 <pre class="r"><code>#format string
-str&lt;-&quot;https://api.elsevier.com/content/search/scopus?&amp;httpAccept=application/xml&amp;count=20&amp;view=complete&quot;
+str&lt;-&quot;https://api.elsevier.com/content/search/scopus?&amp;httpAccept=application/xml&amp;count=100&amp;view=complete&quot;
 
 #fields
-f&lt;-&quot;field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author&quot;</code></pre>
+f&lt;-&quot;field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author,dc:identifier&quot;</code></pre>
 </div>
 </div>
 <div id="build-queries" class="section level2">
-<h2><span class="header-section-number">3.2</span> Build queries</h2>
+<h2><span class="header-section-number">4.2</span> Build queries</h2>
 <ul>
 <li>Arguments</li>
 <li>Desired fields</li>
@@ -191,7 +215,7 @@ class(xmltop)#&quot;XMLInternalElementNode&quot; &quot;XMLInternalNode&quot; &qu
 <pre class="r"><code>xmlName(xmltop) #give name of node</code></pre>
 <pre><code>## [1] &quot;search-results&quot;</code></pre>
 <pre class="r"><code>xmlSize(xmltop) #how many children in node</code></pre>
-<pre><code>## [1] 28</code></pre>
+<pre><code>## [1] 108</code></pre>
 <pre class="r"><code>xmlName(xmltop[[1]]) #name of root's children</code></pre>
 <pre><code>## [1] &quot;totalResults&quot;</code></pre>
 <pre class="r"><code>#set namespaces
@@ -203,19 +227,19 @@ names(ns)[1] &lt;- &quot;xmlns&quot;</code></pre>
 </div>
 </div>
 <div id="format-results" class="section level1">
-<h1><span class="header-section-number">4</span> Format Results</h1>
+<h1><span class="header-section-number">5</span> Format Results</h1>
 <div id="get-journal" class="section level2">
-<h2><span class="header-section-number">4.1</span> Get journal</h2>
+<h2><span class="header-section-number">5.1</span> Get journal</h2>
 <pre class="r"><code>#get
 journal&lt;-xpathSApply(xmltop,&quot;//prism:publicationName&quot;,xmlValue,namespaces=ns)</code></pre>
 </div>
 <div id="get-first-author" class="section level2">
-<h2><span class="header-section-number">4.2</span> Get first author</h2>
+<h2><span class="header-section-number">5.2</span> Get first author</h2>
 <p>List with a position for each article</p>
 <pre class="r"><code>authors&lt;-xpathSApply(xmltop,&quot;//dc:creator&quot;,xmlValue,namespaces=ns)</code></pre>
 </div>
 <div id="all-authors" class="section level2">
-<h2><span class="header-section-number">4.3</span> All authors</h2>
+<h2><span class="header-section-number">5.3</span> All authors</h2>
 <p>The requestor is not authorized to access this resource yet?</p>
 <pre class="r"><code>#how many articles are there?
 lresponse&lt;-length(getNodeSet(xmltop,&quot;//xmlns:entry&quot;,namespaces=ns,xmlValue))
@@ -226,10 +250,12 @@ for (x in 1:lresponse){
   #make an xpath statement
   xpath&lt;-paste(&quot;//xmlns:entry[&quot;,x,&quot;]//xmlns:author/xmlns:authname&quot;,sep=&quot;&quot;)
   allauthors[[x]]&lt;-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
-}</code></pre>
+}
+
+names(allauthors)&lt;-xpathSApply(xmltop,&quot;//xmlns:entry//dc:identifier&quot;,xmlValue,namespaces=ns)</code></pre>
 </div>
 <div id="affiliation" class="section level2">
-<h2><span class="header-section-number">4.4</span> Affiliation</h2>
+<h2><span class="header-section-number">5.4</span> Affiliation</h2>
 <pre class="r"><code>#first author
 aff&lt;-xpathSApply(xmltop,&quot;//xmlns:entry//xmlns:affilname[1]&quot;,xmlValue,namespaces=ns)</code></pre>
 <pre class="r"><code>#All affiliations
@@ -241,28 +267,32 @@ for (x in 1:lresponse){
 }
 
 #fill any null positions with NA
-allaff[sapply(allaff,length)==0][[1]]&lt;-NA</code></pre>
+allaff[sapply(allaff,length)==0]&lt;-NA
+
+#Name by DOI
+names(allaff)&lt;-xpathSApply(xmltop,&quot;//xmlns:entry//dc:identifier&quot;,xmlValue,namespaces=ns)</code></pre>
 </div>
 <div id="citation-count" class="section level2">
-<h2><span class="header-section-number">4.5</span> Citation Count</h2>
+<h2><span class="header-section-number">5.5</span> Citation Count</h2>
 <pre class="r"><code>citation&lt;-xpathSApply(xmltop,&quot;//xmlns:entry//xmlns:citedby-count&quot;,xmlValue,namespaces=ns)</code></pre>
 </div>
 <div id="year" class="section level2">
-<h2><span class="header-section-number">4.6</span> Year</h2>
+<h2><span class="header-section-number">5.6</span> Year</h2>
 <pre class="r"><code>Year&lt;-years(xpathSApply(xmltop,&quot;//xmlns:entry//prism:coverDate&quot;,xmlValue,namespaces=ns))</code></pre>
+<pre class="r"><code>DOI&lt;-xpathSApply(xmltop,&quot;//xmlns:entry//dc:identifier&quot;,xmlValue,namespaces=ns)</code></pre>
 <p>Bind article level statistics</p>
-<pre class="r"><code>artdf&lt;-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year)</code></pre>
+<pre class="r"><code>artdf&lt;-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year,DOI)</code></pre>
 <p>Bind author level statistics</p>
 <pre class="r"><code>#melt and combine
 allauthors&lt;-melt(allauthors)
-colnames(allauthors)&lt;-c(&quot;Author&quot;,&quot;Order&quot;,&quot;Article&quot;)
+colnames(allauthors)&lt;-c(&quot;Author&quot;,&quot;Order&quot;,&quot;DOI&quot;)
 allaff&lt;-melt(allaff)
-colnames(allaff)&lt;-c(&quot;Affiliation&quot;,&quot;Order&quot;,&quot;Article&quot;)
+colnames(allaff)&lt;-c(&quot;Affiliation&quot;,&quot;Order&quot;,&quot;DOI&quot;)
 authdf&lt;-merge(allauthors,allaff)</code></pre>
 </div>
 </div>
 <div id="storing-results" class="section level1">
-<h1><span class="header-section-number">5</span> Storing Results</h1>
+<h1><span class="header-section-number">6</span> Storing Results</h1>
 <ul>
 <li>Create a database to update results This only needs to be done once.</li>
 </ul>
@@ -271,7 +301,289 @@ authdf&lt;-merge(allauthors,allaff)</code></pre>
 copy_to(my_db, artdf, temporary = FALSE,name=&quot;Articles&quot;)
 copy_to(my_db, authdf, temporary = FALSE,name=&quot;Authors&quot;)</code></pre>
 <div id="update-results" class="section level2">
-<h2><span class="header-section-number">5.1</span> Update Results</h2>
+<h2><span class="header-section-number">6.1</span> Update Results</h2>
+</div>
+</div>
+<div id="academic-departments" class="section level1">
+<h1><span class="header-section-number">7</span> Academic departments</h1>
+</div>
+<div id="if-reading-in-from-file" class="section level1">
+<h1><span class="header-section-number">8</span> If reading in from file</h1>
+<pre class="r"><code>depts&lt;-read.csv(&quot;depts.csv&quot;)</code></pre>
+</div>
+<div id="match-journal-to-classification" class="section level1">
+<h1><span class="header-section-number">9</span> Match journal to classification</h1>
+<p>We’ll need to work on classifiers, but this is a start.</p>
+<pre class="r"><code>#article match to classifier
+artmatch&lt;-artdf[artdf$Journal %in% j_class$Publication,]
+
+#merge into final table
+dat&lt;-droplevels(merge(authdf,artmatch))</code></pre>
+<div id="filter-authors" class="section level2">
+<h2><span class="header-section-number">9.1</span> Filter Authors</h2>
+<pre class="r"><code>sort(table(dat$Author))</code></pre>
+<pre><code>## 
+##             Turner,A.H.        Sierra-Corona,R.        Fredrickson,E.L. 
+##                       1                       1                       1 
+##           Luna-Soria,H.            Dheilly,N.M.                Maure,F. 
+##                       1                       1                       1 
+##             Ravallec,M.             Galinier,R.                Doyon,J. 
+##                       1                       1                       1 
+##                Duval,D.            Casanovas,P.                Rowan,J. 
+##                       1                       1                       1 
+##              Faith,J.T.                Gebru,Y.            Fleagle,J.G. 
+##                       1                       1                       1 
+##        Abercrombie,D.L.            Markham,A.C.           Lonsdorf,E.V. 
+##                       1                       1                       1 
+##              Pusey,A.E.             Murray,C.M.           Carlisle,A.B. 
+##                       1                       1                       1 
+##            Goldman,K.J.             Litvin,S.Y.            Madigan,D.J. 
+##                       1                       1                       1 
+##              Jones,K.E.            Gillett,D.J.           Weisberg,S.B. 
+##                       1                       1                       1 
+##              Grayson,T.           Hamilton,A.T.             Hansen,V.D. 
+##                       1                       1                       1 
+##              Leppo,E.W.          Pelletier,M.C.                Borja,Á. 
+##                       1                       1                       1 
+##             Cadien,D.B.              Dauer,D.M.               Diaz,R.J. 
+##                       1                       1                       1 
+##              Dutch,M.E.             Hyland,J.L.              Kellogg,M. 
+##                       1                       1                       1 
+##             Larsen,P.F.           Levinton,J.S.             Llansó,R.J. 
+##                       1                       1                       1 
+##             Lovell,L.L.           Montagna,P.A.                Reddy,S. 
+##                       1                       1                       1 
+##              Sharief,S.               Yohe,L.R.            Witkowski,J. 
+##                       1                       1                       1 
+##           Di Fiore,A.D.             Chaves,P.B.            Cornejo,F.M. 
+##                       1                       1                       1 
+##            Schmitt,C.A.               Shanee,S.         Cortés-Ortiz,L. 
+##                       1                       1                       1 
+##             Fagundes,V.                 Roos,C.              Pacheco,V. 
+##                       1                       1                       1 
+##               Ashe,J.L.             Brooks,E.J.          O'Connell,M.T. 
+##                       1                       1                       1 
+##             Skomal,G.B.               Supp,S.R.             Pacifici,M. 
+##                       1                       1                       1 
+##              Foden,W.B.             Visconti,P.           Watson,J.E.M. 
+##                       1                       1                       1 
+##         Butchart,S.H.M.             Kovacs,K.M.          Scheffers,B.R. 
+##                       1                       1                       1 
+##               Hole,D.G.             Martin,T.G.            Corlett,R.T. 
+##                       1                       1                       1 
+##              Huntley,B.           Bickford,D.P.               Carr,J.A. 
+##                       1                       1                       1 
+##           Hoffmann,A.A.            Midgley,G.F.         Pearce-Kelly,P. 
+##                       1                       1                       1 
+##           Williams,S.E.             Willis,S.G.                Young,B. 
+##                       1                       1                       1 
+##              Perez,K.O.              Munch,S.B.            Bublitz,D.C. 
+##                       1                       1                       1 
+##     Rasambainarivo,F.T.            Bodager,J.R.                Zohdy,S. 
+##                       1                       1                       1 
+##             Almécija,S. Hattenrath-Lehmann,T.K.              Smith,J.L. 
+##                       1                       1                       1 
+##            Wallace,R.B.                 Koch,F.            Trathan,P.N. 
+##                       1                       1                       1 
+##    García Borboroglu,P.            Boersma,D.D.               Bost,C.A. 
+##                       1                       1                       1 
+##         Crawford,R.J.M.            Crossin,G.T.           Cuthbert,R.J. 
+##                       1                       1                       1 
+##                 Dann,P.              Davis,L.S.         De La Puente,S. 
+##                       1                       1                       1 
+##            Ellenberg,U.              Mattern,T.             Gignac,P.M. 
+##                       1                       1                       1 
+##           Erickson,G.M.            Kuczynski,K.                Koury,S. 
+##                       1                       1                       1 
+##          Schwaller,M.R.             Gerber,B.D.              Tecot,S.R. 
+##                       1                       1                       1 
+##             Blanco,M.B.         Winchester,J.M.             Jernvall,J. 
+##                       1                       1                       1 
+##             DeScioli,P.           Massenkoff,M.                 Shaw,A. 
+##                       1                       1                       1 
+##         Petersen,M.B.A.            Kurzban,R.O.              Gibbs,J.P. 
+##                       1                       1                       1 
+##             Hunter,E.A.              Tapia,W.H.              Cayot,L.J. 
+##                       1                       1                       1 
+##             Cooper,L.N.           Clementz,M.T.              Madar,S.I. 
+##                       1                       1                       1 
+##               Bajpai,S.            Hussain,S.T.        Thewissen,J.G.M. 
+##                       1                       1                       1 
+##                Engel,A.              Novoa,C.C.                Wurst,M. 
+##                       1                       1                       1 
+##               Endres,S.                Salmi,R.        Hammerschmidt,K. 
+##                       1                       1                       1 
+##       Doran-Sheehy,D.M.              Baumann,H.             Bliska,J.B. 
+##                       1                       1                       1 
+##                Bolet,A.              Delfino,M.              Fortuny,J. 
+##                       1                       1                       1 
+##               Alba,D.M.              Allam,B.A.          Karatayev,A.Y. 
+##                       1                       1                       1 
+##          Burlakova,L.E.             Murray,C.S.         Martínez,C.A.M. 
+##                       1                       1                       1 
+##               Rest,J.S.          McCartney,J.A.            Stevens,N.J. 
+##                       1                       1                       1 
+##           O'connor,P.M.                 Pina,M.            O'Neill,M.C. 
+##                       1                       1                       1 
+##     Aiello-Lammens,M.E.        Fisher-Reid,M.C.                  Hua,X. 
+##                       1                       1                       1 
+##              Wiens,J.J.             Burson,A.M.            Scheidt,D.M. 
+##                       1                       1                       1 
+##            Gunnell,G.F.            Simmons,N.B.              Rhainds,M. 
+##                       1                       1                       1 
+##          Calabrese,J.M.             Cantrell,S.               Cosner,C. 
+##                       1                       1                       1 
+##             Murray,K.A. Verde Arregoitia,L.D.A.           Di Marco,M.D. 
+##                       1                       1                       1 
+##                 Chan,H.           Karraker,N.E.                   Xu,L. 
+##                       1                       1                       1 
+##                Zhang,F.                Zhang,K.              Evans,S.E. 
+##                       1                       1                       1 
+##            Groenke,J.R.            Jones,M.E.H.                 Chen,X. 
+##                       1                       1                       1 
+##                Kruta,I.            Landman,N.H.            Cochran,J.K. 
+##                       1                       1                       1 
+##         Fitzgerald,S.P.          Koricheva,J.K.            Gurevitch,J. 
+##                       1                       1                       1 
+##            Thorson,J.T.               Baab,K.L.            Perry,J.M.G. 
+##                       1                       1                       1 
+##               Machac,A.        Chejanovski,Z.A.             Duncan,R.P. 
+##                       1                       1                       1 
+##               Husník,F.         Van Leuven,J.T.            Gilbert,D.G. 
+##                       1                       1                       1 
+##               Soligo,C.           Veeramah,K.R.         Gutenkunst,R.N. 
+##                       1                       1                       1 
+##              Lyosn,P.J.               Monzõn,J.               Kays,R.W. 
+##                       1                       1                       1 
+##          Dykhuizen,D.E.           Ernest,S.K.M.            Russell,A.L. 
+##                       1                       1                       1 
+##            Brown,J.H.U.             Burger,J.R.           Burnside,W.R. 
+##                       1                       1                       1 
+##                Chang,M.            Fristoe,T.S.             Dumont,E.R. 
+##                       1                       1                       1 
+##            Samadevam,K.              Warsi,O.M.          Kuczynski,C.A. 
+##                       1                       1                       1 
+##            Velazco,P.M.              Gedamke,T.             Newman,J.M. 
+##                       1                       1                       1 
+##              White,E.R.            Keeling,P.J.                Burki,F. 
+##                       1                       1                       1 
+##             Wilcox,H.M.              Allen,E.E.     Amaral-Zettler,L.A. 
+##                       1                       1                       1 
+##           Armbrust,V.V.          Archibald,J.M.             Bharti,A.K. 
+##                       1                       1                       1 
+##               Bell,C.J.             Beszteri,B.              Bidle,K.D. 
+##                       1                       1                       1 
+##            Cameron,C.T.           Campbell,L.D.              Caron,D.A. 
+##                       1                       1                       1 
+##        Cattolico,R.A.A.              Coyne,K.J.               Davy,S.K. 
+##                       1                       1                       1 
+##            Deschamps,P.            Dyhrman,S.T.            Edvardsen,B. 
+##                       1                       1                       1 
+##              Gates,R.D.          Greenwood,S.J.              Guida,S.M. 
+##                       1                       1                       1 
+##             Jacobi,J.L.           Jakobsen,K.S.              James,E.R. 
+##                       1                       1                       1 
+##            Jenkins,B.D.                 John,U.            Johnson,M.D. 
+##                       1                       1                       1 
+##               Juhl,A.R.                 Kamp,A.               Katz,L.A. 
+##                       1                       1                       1 
+##              Kiene,R.P.          Kudryavtsev,A.            Leander,B.S. 
+##                       1                       1                       1 
+##                  Lin,S.              Lovejoy,C.               Lynn,D.H. 
+##                       1                       1                       1 
+##            Marchetti,A.            McManus,G.B.            Nedelcu,A.M. 
+##                       1                       1                       1 
+##         Menden-Deuer,S.               Miceli,C.                 Mock,T. 
+##                       1                       1                       1 
+##            Montresor,M.            Moran,M.A.N.             Murray,S.A. 
+##                       1                       1                       1 
+##           Nadathur,G.S.                Nagai,S.               Ngam,P.B. 
+##                       1                       1                       1 
+##            Palenik,B.P.        Pawlowski,J.A.N.                 Vale,A. 
+##                       1                       1                       1 
+##      Pérez-Obregón,R.A.        Faife-Cabrera,M.            Álvarez,J.C. 
+##                       1                       1                       1 
+##                Rojas,D.          Bonebrake,T.C.            Syphard,A.D. 
+##                       1                       1                       1 
+##             Franklin,J.           Anderson,K.E.              Mizerek,T. 
+##                       1                       1                       1 
+##         Dibattista,J.D.            Babcock,E.A.             Hendry,A.P. 
+##                       1                       1                       1 
+##            Pikitch,E.K.             Ashley,M.V.             Fields,A.T. 
+##                       1                       1                       2 
+##           Feldheim,K.A.          Chapman,D.D.F.             Smaers,J.B. 
+##                       2                       2                       2 
+##              Goswami,A.             Reyier,E.A.         Akçakaya,R.R.E. 
+##                       2                       2                       2 
+##            Pearson,R.G.            Stanton,J.C.             Wright,P.C. 
+##                       2                       2                       2 
+##             Gobler,C.J.                Cogni,R.           Seiffert,E.R. 
+##                       2                       2                       2 
+##                Viard,F.            Collier,J.L.             Franks,B.R. 
+##                       2                       2                       2 
+##             Kessel,S.T.           Davidson,A.D.             Gruber,S.H. 
+##                       2                       3                       3 
+##            Dávalos,L.M.             Cahill,A.E.          Shoemaker,K.T. 
+##                       3                       4                       4 
+##              Lynch,H.J. 
+##                       5</code></pre>
+<pre class="r"><code>#Cutoff for articles, atleast 5 in my little example
+keep&lt;-names(which(table(dat$Author)&gt;2))
+
+head(dat)</code></pre>
+<pre><code>##                     DOI Order         Author
+## 1 SCOPUS_ID:84891557648     1      Monzõn,J.
+## 2 SCOPUS_ID:84891557648     2      Kays,R.W.
+## 3 SCOPUS_ID:84891557648     3 Dykhuizen,D.E.
+## 4 SCOPUS_ID:84891559527     6    Hendry,A.P.
+## 5 SCOPUS_ID:84891559527     7   Pikitch,E.K.
+## 6 SCOPUS_ID:84891559527     5    Kessel,S.T.
+##                                           Affiliation   First_Author
+## 1 Stony Brook University State University of New York     Monzõn, J.
+## 2           North Carolina Museum of Natural Sciences     Monzõn, J.
+## 3                     North Carolina State University     Monzõn, J.
+## 4                                   McGill University Feldheim, K.A.
+## 5 Stony Brook University State University of New York Feldheim, K.A.
+## 6    Great Lakes Institute for Environmental Research Feldheim, K.A.
+##             Journal Citations Year
+## 1 Molecular Ecology         5 2014
+## 2 Molecular Ecology         5 2014
+## 3 Molecular Ecology         5 2014
+## 4 Molecular Ecology         7 2014
+## 5 Molecular Ecology         7 2014
+## 6 Molecular Ecology         7 2014</code></pre>
+<pre class="r"><code>tocompare&lt;-droplevels(dat[dat$Author %in% keep,])</code></pre>
+</div>
+</div>
+<div id="build-dissimilarity-matrix" class="section level1">
+<h1><span class="header-section-number">10</span> Build Dissimilarity matrix</h1>
+<p>Merge table classification</p>
+<pre class="r"><code>#append journal classifier
+tocompare&lt;-droplevels(merge(tocompare,j_class,by.x=&quot;Journal&quot;,by.y=&quot;Publication&quot;))
+siteXspp&lt;-as.data.frame.array(table(tocompare$Author,tocompare$Class))
+#remove empty colums</code></pre>
+<div id="biplot" class="section level2">
+<h2><span class="header-section-number">10.1</span> Biplot</h2>
+<pre class="r"><code>biplot(prcomp(siteXspp,scale=T))</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqAAAAHgCAMAAABNUi8GAAACf1BMVEX9/v0AAAAAABcAACAAACgAADkAAGUAKDkAMVEAOTkAOY8ASUgAWGYAZmUAZoEAZrU5AAA5ACg5ADk5AGU5OTk5OY85Zlc5ZrU5j5w5j9o6AAA6ICBfAABfUTFlAABlAChlADllAGVlZgBlZjllZmVlgWVlj49ltbVltf1mAABmAGWBAACBOQCBZjmPKACPMQCPOQCPOTmPZgCPj2WP27WP29qP2/2QAACQAGWQFwCcAACcSACctf2iezmjAACje9q1SQC1ZgC1Zii1Zjm122a124+1/rW1/tq1/v22AAC2AA22ADm2AGW2KGa2KI+2SYG2SbW2WAC2nP222/3CAADCZtrIMQDIvP3PAADPKADPgf3aZhfajyjajzna24/a2/3a/tra/v3bAADbABfbADHbFwDbIHvbOpzbWADbgY/bnP3b2/3hAADhUbvnAADnSQDnZtrtAADtIADteznte9rt2/3yAADygWXytf3zAAD5AAD9Zhf9eyD9gSj9jyj9jzn9nDn9tUj9tWX9tbX9vFH922b923v924/9/oH9/pz9/rX9/tr9/v3+AAD+ADn+AGX+KAD+OQD+OTn+SAD+SQD+WAD+ZgD+Zjn+ZmX+ezn+gWX+j2X+j4/+nDn+nEj+nGX+nI/+tWX+tY/+tbX+tdr+tf3+vI/+24/+27X+29r+2/3+/rX+/tr+/v3/AAD/AA3/ABf/ACD/ACj/ADH/ADn/AEj/AFf/AGX/DVH/FwD/IA3/ICD/KAD/KDn/KI//MY//OTn/OWb/OY//SLX/WLX/Zlf/ZmX/ZoH/ZrX/Ztr/e4//e9r/gf3/j4//j5z/j7v/j9r/nI//nP3/vP3/2/0794qHAAAA1XRSTlP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wD/////////////////////////////////////////////////////////////////////////////////////////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" /></p>
+</div>
+<div id="niche-overlap" class="section level2">
+<h2><span class="header-section-number">10.2</span> Niche Overlap</h2>
+<p>Horn’s distance between authors</p>
+<pre class="r"><code>dis&lt;-vegdist(siteXspp,&quot;horn&quot;)
+dis</code></pre>
+<pre><code>##                Cahill,A.E. Davidson,A.D. Lynch,H.J. Gruber,S.H.
+## Davidson,A.D.    1.0000000                                     
+## Lynch,H.J.       0.6000000     0.8543689                       
+## Gruber,S.H.      0.3000000     1.0000000  0.7777778            
+## Shoemaker,K.T.   0.7546012     0.4626866  0.3197279   1.0000000
+## Dávalos,L.M.     0.8275862     1.0000000  0.6153846   0.8076923
+##                Shoemaker,K.T.
+## Davidson,A.D.                
+## Lynch,H.J.                   
+## Gruber,S.H.                  
+## Shoemaker,K.T.               
+## Dávalos,L.M.        1.0000000</code></pre>
 </div>
 </div>
 
