@@ -1,13 +1,6 @@
----
-title: "Faculty Niche"
-author: "Ben Weinstein"
-date: "Saturday, November 01, 2014"
-output:
-  html_document:
-    toc: true
-    number_sections: true
-    keep_md: true
----
+# Faculty Niche
+Ben Weinstein  
+Saturday, November 01, 2014  
 
 #Approach
 
@@ -30,10 +23,32 @@ output:
   
 #Basic Query Search
 
-```{r}
+
+```r
 library(XML)
 library(plyr)
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:plyr':
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize
+## 
+## The following object is masked from 'package:stats':
+## 
+##     filter
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 library(ggplot2)
 library(reshape2)
 library(httr)
@@ -52,9 +67,10 @@ http://api.elsevier.com/content/search/fields/scopus
 Get all articles by author Ben Weinstein
 
 The boolean escapes are + and parenthesis need to be %28 and %29
-```{r}
+
+```r
 #format string
-query<-"query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+AND+auth(Graham+C)+OR+auth(Lynch,H)+OR+auth(Baines,S)"
+query<-"query=affil(Stony+Brook)+AND+SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)"
 
 #url encoding
 #reform query to html encoded
@@ -65,23 +81,29 @@ queryF<-gsub(x=queryF,"\\+","%20")
 queryF
 ```
 
+```
+## [1] "query=affil%28Stony%20Brook%29%20AND%20SUBJAREA%28AGRI%29%20OR%20SUBJAREA%28ENVI%29"
+```
+
 ###Query Parameters
 *httpAccept=application/xml returns an xml result
 Add my api key
 
 Institution token - cannot be viewed in browser, save in file outside of git.
-```{r}
+
+```r
 inst.token<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/InstToken.txt")
 apiKey<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/apikey.txt")
 ```
 
 
-```{r}
+
+```r
 #format string
-str<-"https://api.elsevier.com/content/search/scopus?&httpAccept=application/xml&count=100&view=complete"
+str<-"https://api.elsevier.com/content/search/scopus?&httpAccept=application/xml&count=20&view=complete"
 
 #fields
-f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author,dc:identifier"
+f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author"
 ```
 
 ##Build queries
@@ -94,7 +116,8 @@ It's easiest to bind these together seperately, to create one long call
 
 We need to know author, affiliation, publication name, and citation count
 
-```{r}
+
+```r
 toget<-paste(str,queryF,sep="&")
 
 #add in api and institutional key
@@ -103,39 +126,68 @@ toget<-paste(toget,"&insttoken=",inst.token,sep="")
 
 #add fields
 toget<-paste(toget,f,sep="&")
-
 ```
 
 Request query
-```{r}
+
+```r
 #call
 response <- GET(toget)
 ```
 
 Parse
 
-```{r}
+
+```r
 xml <- xmlInternalTreeParse(response)
 xmltop = xmlRoot(xml) #gives content of root
 class(xmltop)#"XMLInternalElementNode" "XMLInternalNode" "XMLAbstractNode"
-xmlName(xmltop) #give name of node
-xmlSize(xmltop) #how many children in node
-xmlName(xmltop[[1]]) #name of root's children
+```
 
+```
+## [1] "XMLInternalElementNode" "XMLInternalNode"       
+## [3] "XMLAbstractNode"
+```
+
+```r
+xmlName(xmltop) #give name of node
+```
+
+```
+## [1] "search-results"
+```
+
+```r
+xmlSize(xmltop) #how many children in node
+```
+
+```
+## [1] 28
+```
+
+```r
+xmlName(xmltop[[1]]) #name of root's children
+```
+
+```
+## [1] "totalResults"
+```
+
+```r
 #set namespaces
 #define name spaces
 nsDefs<-xmlNamespaceDefinitions(xmltop)
 ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
 
 names(ns)[1] <- "xmlns"
-
 ```
 
 #Format Results
 
 ##Get journal
 
-```{r}
+
+```r
 #get
 journal<-xpathSApply(xmltop,"//prism:publicationName",xmlValue,namespaces=ns)
 ```
@@ -144,13 +196,15 @@ journal<-xpathSApply(xmltop,"//prism:publicationName",xmlValue,namespaces=ns)
 
 List with a position for each article
 
-```{r}
+
+```r
 authors<-xpathSApply(xmltop,"//dc:creator",xmlValue,namespaces=ns)
 ```
 
 ##All authors
 The requestor is not authorized to access this resource yet?
-```{r}
+
+```r
 #how many articles are there?
 lresponse<-length(getNodeSet(xmltop,"//xmlns:entry",namespaces=ns,xmlValue))
 
@@ -161,18 +215,18 @@ for (x in 1:lresponse){
   xpath<-paste("//xmlns:entry[",x,"]//xmlns:author/xmlns:authname",sep="")
   allauthors[[x]]<-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
 }
-
-names(allauthors)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
 ```
 
 ##Affiliation
 
-```{r}
+
+```r
 #first author
 aff<-xpathSApply(xmltop,"//xmlns:entry//xmlns:affilname[1]",xmlValue,namespaces=ns)
 ```
 
-```{r}
+
+```r
 #All affiliations
 allaff<-list()
 for (x in 1:lresponse){
@@ -182,51 +236,45 @@ for (x in 1:lresponse){
 }
 
 #fill any null positions with NA
-allaff[sapply(allaff,length)==0]<-NA
-
-#Name by DOI
-names(allaff)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
-
+allaff[sapply(allaff,length)==0][[1]]<-NA
 ```
 
 ##Citation Count
 
-```{r}
+
+```r
 citation<-xpathSApply(xmltop,"//xmlns:entry//xmlns:citedby-count",xmlValue,namespaces=ns)
 ```
 
 ##Year
 
-```{r}
+
+```r
 Year<-years(xpathSApply(xmltop,"//xmlns:entry//prism:coverDate",xmlValue,namespaces=ns))
 ```
 
-```{r}
-DOI<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
-```
-
-
 Bind article level statistics
 
-```{r}
-artdf<-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year,DOI)
+```r
+artdf<-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year)
 ```
 
 Bind author level statistics
 
-```{r}
+```r
 #melt and combine
 allauthors<-melt(allauthors)
-colnames(allauthors)<-c("Author","Order","DOI")
+colnames(allauthors)<-c("Author","Order","Article")
 allaff<-melt(allaff)
-colnames(allaff)<-c("Affiliation","Order","DOI")
+colnames(allaff)<-c("Affiliation","Order","Article")
 authdf<-merge(allauthors,allaff)
 ```
 
 #Storing Results
   * Create a database to update results
   This only needs to be done once.
-```{r,eval=FALSE}
+
+```r
 #Create a database (once)
 #my_db <- src_sqlite("Scopus", create = T)
 copy_to(my_db, artdf, temporary = FALSE,name="Articles")
@@ -234,33 +282,3 @@ copy_to(my_db, authdf, temporary = FALSE,name="Authors")
 ```
 
 ##Update Results
-#Journal Classifications
-
-```{r}
-#If reading in from file.
-j_class<-read.csv("Class.csv",row.names=1)
-```
-
-#Academic departments
-#If reading in from file
-
-```{r}
-depts<-read.csv("depts.csv")
-```
-
-#Match journal to classification
-
-We'll need to work on classifiers, but this is a start.
-
-```{r}
-#article match to classifier
-artmatch<-artdf[artdf$Journal %in% j_class$Publication,]
-
-#merge into final table
-dat<-droplevels(merge(authdf,artmatch))
-```
-
-##Build dissimilarity matrix
-```{r}
-table(dat$Author))
-```
