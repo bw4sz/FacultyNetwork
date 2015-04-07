@@ -1,0 +1,15 @@
+base
+XML
+plyr
+dplyr
+ggplot2
+reshape2
+httr
+stringr
+chron
+permute
+lattice
+vegan
+knitr
+sna
+bipartite

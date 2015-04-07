@@ -3,9 +3,8 @@
 ##Make Query
 scquery<-function(inquery){
   
-  #Basic Query Search
   #format string
-  query<-paste("query=",inquery,sep="")
+  query<-paste("query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)",inquery,sep="+AND+")
   
   #url encoding
   #reform query to html encoded
@@ -13,19 +12,18 @@ scquery<-function(inquery){
   queryF<-gsub(x=queryF,"\\)","%29")
   queryF<-gsub(x=queryF,"\\+","%20")
   
-  ###Query Parameters
-  
+  ###Query Parameters  
   #Institution token - cannot be viewed in browser, save in file outside of git.
-  
   inst.token<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/InstToken.txt")
   apiKey<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/apikey.txt")  
   
   #format string
-  str<-"https://api.elsevier.com/content/search/scopus?&httpAccept=application/xml&count=20&view=complete"
+  str<-"https://api.elsevier.com/content/search/scopus?&httpAccept=application/xml&count=100&view=complete"
   
   #fields
-  f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author")
+  f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author,dc:identifier"
   
+  #bind
   toget<-paste(str,queryF,sep="&")
   
   #add in api and institutional key
@@ -44,37 +42,30 @@ scquery<-function(inquery){
 ##
 
 sc_parse<-function(response){
-#Parse
-  
   xml <- xmlInternalTreeParse(response)
-  xmltop = xmlRoot(xml) #gives content of root
-  class(xmltop)
-  xmlName(xmltop) #give name of node
-  xmlSize(xmltop) #how many children in node
-  xmlName(xmltop[[1]]) #name of root's children
+  xmltop<-xmlRoot(xml)
+  names(xmltop)
   
-  #set namespaces
   #define name spaces
   nsDefs<-xmlNamespaceDefinitions(xmltop)
   ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
-  
   names(ns)[1] <- "xmlns"
+  
+  #set namespaces
+  e<-xpathSApply(xmltop,"//xmlns:entry/xmlns:error",xmlValue,namespaces=ns)
+  if(length(e)==1){return(NA)}
   
   #Format Results
   
   ##Get journal
-  
-  #get
   journal<-xpathSApply(xmltop,"//prism:publicationName",xmlValue,namespaces=ns)
   
   ##Get first author
   
   #List with a position for each article
-  
   authors<-xpathSApply(xmltop,"//dc:creator",xmlValue,namespaces=ns)
   
   ##All authors
-  The requestor is not authorized to access this resource yet?
   
   #how many articles are there?
   lresponse<-length(getNodeSet(xmltop,"//xmlns:entry",namespaces=ns,xmlValue))
@@ -86,6 +77,8 @@ sc_parse<-function(response){
     xpath<-paste("//xmlns:entry[",x,"]//xmlns:author/xmlns:authname",sep="")
     allauthors[[x]]<-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
   }
+  
+  names(allauthors)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
   
   
   ##Affiliation
@@ -102,7 +95,13 @@ sc_parse<-function(response){
   }
   
   #fill any null positions with NA
-  allaff[sapply(allaff,length)==0][[1]]<-NA
+  allaff[sapply(allaff,length)==0]<-NA
+  
+  #Name by DOI
+  names(allaff)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
+  
+  #fill any null positions with NA
+  allaff[sapply(allaff,length)==0]<-NA
   
   ##Citation Count
   citation<-xpathSApply(xmltop,"//xmlns:entry//xmlns:citedby-count",xmlValue,namespaces=ns)
@@ -110,13 +109,25 @@ sc_parse<-function(response){
   ##Year
   Year<-years(xpathSApply(xmltop,"//xmlns:entry//prism:coverDate",xmlValue,namespaces=ns))
   
+  #Indentifier
+  DOI<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
+  
   #Bind article level statistics
   artdf<-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year)
   
   #melt and combine
   allauthors<-melt(allauthors)
-  colnames(allauthors)<-c("Author","Order","Article")
+  colnames(allauthors)<-c("Author","Order","DOI")
   allaff<-melt(allaff)
-  colnames(allaff)<-c("Affiliation","Order","Article")
+  colnames(allaff)<-c("Affiliation","Order","DOI")
+  #merge
   authdf<-merge(allauthors,allaff)
+  
+  #Match journal to classification
+  #article match to classifier
+  artmatch<-artdf[artdf$Journal %in% j_class$Publication,]
+
+  #merge into final table
+  dat<-droplevels(merge(authdf,artmatch))
+  return(dat)
 }

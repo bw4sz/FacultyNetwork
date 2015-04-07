@@ -27,7 +27,14 @@ output:
   * Articles by highly similiar authors with high niche overlap will be higher cited due intense domain-specific knowledge
   * Articles by authors with low niche overlap will be higher cited due to novel insights
 
+#Descriptive statistics
+
+  *Which fields are co-publishing more?
+  *Where is there potential for future growth?
+  
 #Journal Classifications
+
+[Link](http://scholar.google.com/citations?view_op=top_venues&hl=en&vq=bio)
 
 ```{r}
 #read in data
@@ -42,7 +49,7 @@ serials<-paste(s,collapse="OR")
   
 #Basic Query Search
 
-```{r}
+```{r,warning=FALSE,message=FALSE}
 library(XML)
 library(plyr)
 library(dplyr)
@@ -52,6 +59,9 @@ library(httr)
 library(stringr)
 library(chron)
 library(vegan)
+library(knitr)
+library(bipartite)
+opts_chunk$set(fig.width=10,cache=TRUE,warning=F,message=F,echo=F)
 ```
 
 ##Test query
@@ -67,15 +77,13 @@ Get all articles by author Ben Weinstein
 The boolean escapes are + and parenthesis need to be %28 and %29
 ```{r}
 #format string
-query<-"query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+Ecology+Evolution"
+query<-"query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)+AND+affil(Stony+Brook+University)+srctitle(Ecology+OR+Evolution)"
 
 #url encoding
 #reform query to html encoded
 queryF<-gsub(x=query,"\\(","%28")
 queryF<-gsub(x=queryF,"\\)","%29")
 queryF<-gsub(x=queryF,"\\+","%20")
-
-queryF
 ```
 
 ###Query Parameters
@@ -125,15 +133,10 @@ Request query
 response <- GET(toget)
 ```
 
-Parse
+Parse and define namespaces
 
 ```{r}
 xml <- xmlInternalTreeParse(response)
-xmltop = xmlRoot(xml) #gives content of root
-class(xmltop)#"XMLInternalElementNode" "XMLInternalNode" "XMLAbstractNode"
-xmlName(xmltop) #give name of node
-xmlSize(xmltop) #how many children in node
-xmlName(xmltop[[1]]) #name of root's children
 
 #set namespaces
 #define name spaces
@@ -246,15 +249,6 @@ copy_to(my_db, artdf, temporary = FALSE,name="Articles")
 copy_to(my_db, authdf, temporary = FALSE,name="Authors")
 ```
 
-##Update Results
-
-#Academic departments
-#If reading in from file
-
-```{r}
-depts<-read.csv("depts.csv")
-```
-
 #Match journal to classification
 
 We'll need to work on classifiers, but this is a start.
@@ -272,7 +266,7 @@ dat<-droplevels(merge(authdf,artmatch))
 ```{r}
 sort(table(dat$Author))
 #Cutoff for articles, atleast 5 in my little example
-keep<-names(which(table(dat$Author)>2))
+keep<-names(which(table(dat$Author)>1))
 
 head(dat)
 tocompare<-droplevels(dat[dat$Author %in% keep,])
@@ -298,7 +292,11 @@ Horn's distance between authors
 
 ```{r}
 dis<-vegdist(siteXspp,"horn")
-dis
 ```
 
+##Specialization
+```{r}
+visweb(siteXspp)
+plotweb(siteXspp)
+```
 
