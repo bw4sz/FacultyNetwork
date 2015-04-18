@@ -44,13 +44,13 @@ x=175
 
 dat<-list()
 
-for (x in 175){
+for (x in c(100:110)){
   print(x)
   #get articles from a journal and parse it
   q<-paste("exactsrctitle(",s[x],")",sep="")
   
   #call query
-  responses<-allyears(q,2005:2008)
+  responses<-allyears(q,2010:2014)
   
   #parse result
   dat[[x]]<-responses
@@ -59,45 +59,35 @@ for (x in 175){
 #remove blank
 dat<-dat[!sapply(dat,length)==0]
 
+datparse<-list()
 #Parse results
-datparse<-lapply(dat,function(x){
-  r<-lapply(x,sc_parse)
-  return(rbind_all(r[!sapply(r,length)==1]))
-})
+
+for (x in 1:length(dat)){
+  r<-lapply(dat[[x]],sc_parse)
+  datparse[[x]]<-rbind_all(r[!sapply(r,length)==1])
+}
 
 #bind journals
 df<-rbind_all(datparse)
 
 ##Filter Authors
-sort(table(df$Author))
-
-#Cutoff for articles, atleast 5 in my little example
-keep<-names(which(table(df$Author)>1))
+#Cutoff for articles, atleast 2 in my little example
+keep<-names(which(table(df$Author)>2))
 tocompare<-droplevels(df[df$Author %in% keep,])
 
 #Build Dissimilarity matrix
 #Merge table classification
+tocompare$Journal<-as.factor(tocompare$Journal)
+#remerge the "The" in names, sorry bit of ugly code
+levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
 
 #append journal classifier
 tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication"))
-siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
 
-##Biplot
-biplot(prcomp(siteXspp,scale=T))
+#turn unknowns to NA, it was just a place holder
+tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
+tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-##Niche Overlap
-#Horn's distance between authors
-dis<-as.matrix(vegdist(siteXspp,"horn"))
-
-##Specialization
-visweb(siteXspp)
-plotweb(siteXspp)
-
-#as one way.
-#only connect players 
-#ig<-graph.adjacency(dis[dis<.75]<-0)
-
-#bad.vs<-V(ig)[degree(ig)<20] #identify those vertices part of less than three edges
-#ig.network<-delete.vertices(ig, bad.vs) #exclude them from the graph
+write.csv(tocompare,"Data/ParsedData.csv")
 
 save.image("Journal.RData")

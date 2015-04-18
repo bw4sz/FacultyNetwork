@@ -62,9 +62,6 @@ sc_parse<-function(response){
   ##Get journal
   journal<-xpathSApply(xmltop,"//prism:publicationName",xmlValue,namespaces=ns)
   
-  ##Get first author
-  authors<-xpathSApply(xmltop,"//dc:creator",xmlValue,namespaces=ns)
-  
   ##All authors  
   #how many articles are there?
   lresponse<-length(getNodeSet(xmltop,"//xmlns:entry",namespaces=ns,xmlValue))
@@ -79,10 +76,11 @@ sc_parse<-function(response){
   
   names(allauthors)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
   
-  ##Affiliation
-  #first author
-  aff<-xpathSApply(xmltop,"//xmlns:entry//xmlns:affilname[1]",xmlValue,namespaces=ns)
+  #if missing
+  allauthors[lapply(allauthors,length)==0]<-"Unknown"
   
+  ##Affiliation
+
   #All affiliations
   allaff<-list()
   for (x in 1:lresponse){
@@ -92,7 +90,7 @@ sc_parse<-function(response){
   }
   
   #fill any null positions with NA
-  allaff[sapply(allaff,length)==0]<-NA
+  allaff[sapply(allaff,length)==0]<-"Unknown"
   
   #Name by DOI
   names(allaff)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
@@ -107,12 +105,18 @@ sc_parse<-function(response){
   DOI<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
   
   #Bind article level statistics
-  artdf<-data.frame(First_Author=authors,Journal=journal,Citations=citation,Year=Year,DOI=DOI)
+  artdf<-data.frame(Journal=journal,Citations=citation,Year=Year,DOI=DOI)
   
   #melt and combine
   allauthors<-melt(allauthors)
   colnames(allauthors)<-c("Author","Order","DOI")
   allaff<-melt(allaff)
+  
+  #if the journal doesn't provide affiliation, there will be no order
+  if(ncol(allaff)==2){
+    allaff$Order<-NA
+    allaff<-allaff[,c(1,3,2)]
+  }
   colnames(allaff)<-c("Affiliation","Order","DOI")
   
   #merge
