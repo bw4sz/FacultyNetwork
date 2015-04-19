@@ -11,12 +11,21 @@ library(chron)
 library(vegan)
 library(knitr)
 library(bipartite)
+library(sna)
 library(igraph)
 
 #source function 
 source("Funtions.R")
 
-tocompare<-read.csv(tocompare,"Data/ParsedData.csv")
+tocompare<-read.csv("Data/ParsedData.csv")[,-1]
+
+#remove duplicates.
+tocompare<-tocompare[!duplicated(tocompare),]
+
+#in case the column names in there 
+tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
+
+
 
 siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
 
@@ -50,7 +59,85 @@ dat<-merge(tocompare,niche.author,by="DOI",all=T)
 #There are multiple entries per DOI, mean should be all the same
 d<-group_by(dat,DOI) %>% select(Journal,Citations,Class,h5.index,Niche.Overlap) %>% distinct()
 
-ggplot(d[d$Citations>0,],aes(x=Niche.Overlap,y=Citations)) + geom_point() + theme_bw() + stat_smooth()
+#ggplot(d[d$Citations>0,],aes(x=Niche.Overlap,y=Citations)) + geom_point() + theme_bw() + stat_smooth()
 
-#Network analysis of disciplines as undirected graph.
+#########Class connections
+siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
+
+#Compare disciplines
+topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+g<-graph.adjacency(topics,"undirected",weighted=TRUE)
+
+g<-simplify(g)
+plot(g)
+
+
+# set labels and degrees of vertices
+V(g)$label <- V(g)$name
+V(g)$degree <- degree(g)
+layout1 <- layout.fruchterman.reingold(g)
+
+V(g)$label.cex <- V(g)$degree / max(V(g)$degree)+ .1
+V(g)$label.color <- rgb(0, 0, .2, .8)
+V(g)$frame.color <- NA
+
+egam=E(g)$weight/max(E(g)$weight)
+E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
+
+ramp <- colorRamp(c("blue","red"),alpha=T)
+
+E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+
+# plot the graph in layout1
+layout1<- layout.fruchterman.reingold(g)
+plot.igraph(g,edge.width=E(g)$weight/max(E(g)$weight)*2,layout=layout1)
+
+#If you need to delete
+#g.copy <- delete.edges(g, which(E(g)$weight <.1)-1)
+#plot(g.copy)
+
+wt <- walktrap.community(g, modularity=TRUE)
+dend <- as.dendrogram(wt, use.modularity=TRUE)
+plot(as.hclust(dend))
+
+#Network analysis of journals as undirected graph.
+
+siteXspp_j<-as.data.frame.array(table(tocompare$Author,tocompare$Journal))
+
+#Compare disciplines
+topics<-1-as.matrix(vegdist(t(siteXspp_j),"horn"))
+g<-graph.adjacency(topics,"undirected",weighted=TRUE)
+g<-simplify(g)
+plot(g)
+
+
+# set labels and degrees of vertices
+V(g)$label <- V(g)$name
+V(g)$degree <- degree(g)
+layout1 <- layout.fruchterman.reingold(g)
+plot(g, layout=layout1)
+
+V(g)$label.cex <- V(g)$degree / max(V(g)$degree)+ .1
+V(g)$label.color <- rgb(0, 0, .2, .8)
+V(g)$frame.color <- NA
+
+egam=E(g)$weight/max(E(g)$weight)
+E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
+
+ramp <- colorRamp(c("blue","red"),alpha=T)
+
+E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+
+# plot the graph in layout1
+layout1<- layout.fruchterman.reingold(g)
+plot.igraph(g,edge.width=E(g)$weight/max(E(g)$weight)*2,layout=layout1)
+
+#If you need to delete
+g.copy <- delete.edges(g, which(E(g)$weight <.1)-1)
+plot(g.copy)
+
+wt <- walktrap.community(g, modularity=TRUE)
+dend <- as.dendrogram(wt, use.modularity=TRUE)
+plot(as.hclust(dend))
+
 save.image("Analysis.RData")

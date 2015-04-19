@@ -40,11 +40,9 @@ for(x in a){
   s[x]<-torep
 }
 
-x=175
-
 dat<-list()
 
-for (x in c(100:110)){
+for (x in 100:110){
   print(x)
   #get articles from a journal and parse it
   q<-paste("exactsrctitle(",s[x],")",sep="")
@@ -88,6 +86,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.csv(tocompare,"Data/ParsedData.csv")
+write.table(tocompare,"Data/ParsedData.csv",append=T,sep=",",col.names=F)
 
 save.image("Journal.RData")
