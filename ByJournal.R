@@ -20,6 +20,13 @@ source("Funtions.R")
 #read in data
 j_class<-read.csv("Class.csv",row.names=1)
 
+#Journal names are characters, are mutable
+j_class$Publication<-as.character(j_class$Publication)
+
+#some known errors that need to be handformatted
+j_class[208,"Publication"]<-"Annual+Review+of+Plant+Biology"
+j_class[209,"Publication"]<-"Plant, Cell and Environment"
+
 #collapse into a string, formatting spaces with + and place a boolean OR in between each
 serial<-j_class$Publication
 s<-gsub(x=serial,replacement="\\+",pattern=" ")
@@ -27,9 +34,6 @@ s<-gsub(x=s,"\\&+","")
 
 #couple malformed ones
 s<-s[-c(19,767,645,595,563,485,371,157,147,133,132,130,127)]
-
-##Departments
-#depts<-read.csv("depts.csv")
 
 #start with the auk, s=175
 #needs to replace the the's in front of journal title
@@ -40,33 +44,23 @@ for(x in a){
   s[x]<-torep
 }
 
+#create a data holder
 dat<-list()
 
-for (x in 100:110){
+for (x in 100:200){
   print(x)
   #get articles from a journal and parse it
   q<-paste("exactsrctitle(",s[x],")",sep="")
   
   #call query
-  responses<-allyears(q,2010:2014)
+  responses<-allyears(query=q,yearrange=2005:2015)
   
   #parse result
   dat[[x]]<-responses
 }
 
-#remove blank
-dat<-dat[!sapply(dat,length)==0]
-
-datparse<-list()
-#Parse results
-
-for (x in 1:length(dat)){
-  r<-lapply(dat[[x]],sc_parse)
-  datparse[[x]]<-rbind_all(r[!sapply(r,length)==1])
-}
-
-#bind journals
-df<-rbind_all(datparse)
+#bind journals, remove no matched
+df<-rbind_all(dat[!lapply(dat,length)==1])
 
 ##Filter Authors
 #Cutoff for articles, atleast 2 in my little example
@@ -86,6 +80,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"Data/ParsedData.csv",append=T,sep=",",col.names=F)
+write.table(tocompare,"Data/ParsedData.csv",append=T,sep=",",col.names=F,row.names=F)
 
 save.image("Journal.RData")

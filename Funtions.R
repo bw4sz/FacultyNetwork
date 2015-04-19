@@ -70,7 +70,7 @@ sc_parse<-function(response){
   allauthors<-list()
   for (x in 1:lresponse){
     #make an xpath statement
-    xpath<-paste("//xmlns:entry[",x,"]//xmlns:author/xmlns:authname",sep="")
+    xpath<-paste("//xmlns:entry[",x,"]//xmlns:author/xmlns:authid",sep="")
     allauthors[[x]]<-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
   }
   
@@ -123,8 +123,8 @@ sc_parse<-function(response){
   authdf<-merge(allauthors,allaff,by=c("Order","DOI"))
   
   #Match journal to classification
-  #article match to classifier
-  artmatch<-artdf[artdf$Journal %in% j_class$Publication,]
+  #legacy name change
+  artmatch<-artdf
   if(nrow(artmatch)==0){ artmatch<-artdf[paste("The",artdf$Journal) %in% j_class$Publication,] }
 
   #merge into final table
@@ -132,11 +132,77 @@ sc_parse<-function(response){
   return(dat)
 }
 
+
+#How many results from a query, used to loop until complete
+getCount<-function(response){
+  xml <- xmlInternalTreeParse(response)
+  xmltop<-xmlRoot(xml)
+  
+  #define name spaces
+  nsDefs<-xmlNamespaceDefinitions(xmltop)
+  ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
+  names(ns)[1] <- "xmlns"
+  
+  #Get total results
+  tresults<-as.numeric(xpathSApply(xmltop,"//opensearch:totalResults",xmlValue,namespaces=ns))
+  return(tresults)
+}
+
+currentCount<-function(response){
+  xml <- xmlInternalTreeParse(response)
+  xmltop<-xmlRoot(xml)
+  
+  #define name spaces
+  nsDefs<-xmlNamespaceDefinitions(xmltop)
+  ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
+  names(ns)[1] <- "xmlns"
+  
+  #Get current results total
+  tresults<-length(xpathSApply(xmltop,"//xmlns:entry",xmlValue,namespaces=ns))
+  return(tresults)
+}
+
 #run for each year
 allyears<-function(query,yearrange){
   out<-list()
   for(x in 1:length(yearrange)){
-    out[[x]]<-scquery(query,yearrange[x])
+    
+    yeardat<-list()
+      
+      #Iterators
+      tcount<-0
+      r<-1
+  
+      #Get initial query
+      response<-scquery(query,yearrange[x])
+      
+      #How many results are there?
+      tresults<-getCount(response)
+      
+      #How many results did we get?
+      tcount<-tcount+currentCount(response)
+      yeardat[[r]]<-response
+      
+      #break function if no response
+      if(tresults==0){return("No matches")}
+    
+      #Iterate until we get all results
+      while(!tcount==tresults){
+        r=r+1
+        newrequest<-paste(response[[1]],"&start=",tcount,sep="")
+        newresponse<-GET(newrequest)
+        yeardat[[r]]<-newresponse
+        tcount<-tcount+currentCount(newresponse)        
+      }
+      
+      #remove blank
+      yeardat<-yeardat[!sapply(yeardat,length)==0]
+      
+      #bind the yeardat
+      out[[x]]<-rbind_all(lapply(yeardat,sc_parse))
+      print(paste(str_extract(query,"\\(.*?\\)"),yearrange[x]))
   }
-  return(out)
+  
+  dat<-rbind_all(out[!sapply(out,length)==1])
+  return(dat)
 }
