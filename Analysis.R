@@ -22,7 +22,7 @@ tocompare<-read.csv("Data/ParsedData.csv")
 #filter authors
 #distribution of publication
 hist(table(tocompare$Author))
-keep<-names(which(table(tocompare$Author)>2))
+keep<-names(which(table(tocompare$Author)>4))
 tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
 
 #remove duplicates.
@@ -47,7 +47,7 @@ diag(dis)<-NA
 
 ##Specialization
 #visweb(siteXspp)
-plotweb(siteXspp)
+#plotweb(siteXspp)
 
 #for each paper calculate niche overlap
 tolist<-split(tocompare,tocompare$DOI)
@@ -143,10 +143,10 @@ E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/
 
 # plot the graph in layout1
 layout1<- layout.fruchterman.reingold(g)
-plot.igraph(g,edge.width=E(g)$weight/max(E(g)$weight)*2,layout=layout1)
+#plot.igraph(g,edge.width=E(g)$weight/max(E(g)$weight)*2,layout=layout1)
 
 #If you need to delete
-g.copy <- delete.edges(g, which(E(g)$weight <.15))
+g.copy <- delete.edges(g, which(E(g)$weight <.05))
 plot(g.copy)
 
 wt <- walktrap.community(g, modularity=TRUE)

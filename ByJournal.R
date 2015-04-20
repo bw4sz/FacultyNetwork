@@ -33,7 +33,7 @@ s<-gsub(x=serial,replacement="\\+",pattern=" ")
 s<-gsub(x=s,"\\&+","")
 
 #couple malformed ones
-s<-s[-c(19,767,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157)]
+s<-s[-c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
 
 #start with the auk, s=175
 #needs to replace the the's in front of journal title
@@ -47,7 +47,7 @@ for(x in a){
 #create a data holder
 dat<-list()
 
-for (x in 100:200){
+for (x in 201:250){
   print(x)
   #get articles from a journal and parse it
   q<-paste("exactsrctitle(",s[x],")",sep="")

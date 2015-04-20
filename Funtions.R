@@ -138,7 +138,7 @@ sc_parse<-function(response){
 
 
 #How many results from a query, used to loop until complete
-getCount<-function(response){
+getCount<-function(response){  
   xml <- xmlInternalTreeParse(response)
   xmltop<-xmlRoot(xml)
   
@@ -153,6 +153,7 @@ getCount<-function(response){
 }
 
 currentCount<-function(response){
+  
   xml <- xmlInternalTreeParse(response)
   xmltop<-xmlRoot(xml)
   
@@ -180,6 +181,8 @@ allyears<-function(query,yearrange){
       #Get initial query
       response<-scquery(query,yearrange[x])
       
+      if(!response$status_code==200){next}
+    
       #How many results are there?
       tresults<-getCount(response)
       
