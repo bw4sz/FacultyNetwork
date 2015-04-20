@@ -33,7 +33,7 @@ s<-gsub(x=serial,replacement="\\+",pattern=" ")
 s<-gsub(x=s,"\\&+","")
 
 #couple malformed ones
-s<-s[-c(19,767,645,595,563,485,371,157,147,133,132,130,127)]
+s<-s[-c(19,767,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157)]
 
 #start with the auk, s=175
 #needs to replace the the's in front of journal title
@@ -62,14 +62,17 @@ for (x in 100:200){
 #bind journals, remove no matched
 df<-rbind_all(dat[!lapply(dat,length)==1])
 
-##Filter Authors
-#Cutoff for articles, atleast 2 in my little example
-keep<-names(which(table(df$Author)>2))
-tocompare<-droplevels(df[df$Author %in% keep,])
-
 #Build Dissimilarity matrix
 #Merge table classification
 tocompare$Journal<-as.factor(tocompare$Journal)
+
+#Standardize capitalization
+df$Journal<-sapply(df$Journal,.simpleCap)
+j_class$Publication<-sapply(j_class$Publication,.simpleCap)
+
+#legacy name change
+tocompare<-df
+
 #remerge the "The" in names, sorry bit of ugly code
 levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
 

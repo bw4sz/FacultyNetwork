@@ -19,6 +19,12 @@ source("Funtions.R")
 
 tocompare<-read.csv("Data/ParsedData.csv")
 
+#filter authors
+#distribution of publication
+hist(table(tocompare$Author))
+keep<-names(which(table(tocompare$Author)>2))
+tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
+
 #remove duplicates.
 tocompare<-tocompare[!duplicated(tocompare),]
 

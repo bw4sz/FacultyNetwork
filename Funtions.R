@@ -4,7 +4,7 @@
 scquery<-function(inquery,year){
   
   #format string
-  query<-paste("query=SUBJAREA(AGRI)+OR+SUBJAREA(ENVI)",inquery,sep="+AND+")
+  query<-paste("query=",inquery,sep="")
   
   #url encoding
   #reform query to html encoded
@@ -45,6 +45,10 @@ scquery<-function(inquery,year){
 ##
 
 sc_parse<-function(response){
+  
+  #Does the response have data?
+  if(!response$status_code==200){return("Invalid Query")}
+  
   xml <- xmlInternalTreeParse(response)
   xmltop<-xmlRoot(xml)
   
@@ -205,4 +209,11 @@ allyears<-function(query,yearrange){
   
   dat<-rbind_all(out[!sapply(out,length)==1])
   return(dat)
+}
+
+#helper function for standardizing caps
+.simpleCap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1, 1)), substring(s, 2),
+        sep = "", collapse = " ")
 }
