@@ -238,8 +238,7 @@ getSourceID<-function(inquery){
   #reform query to html encoded
   queryF<-gsub(x=query,"\\(","%28")
   queryF<-gsub(x=queryF,"\\)","%29")
-  queryF<-gsub(x=queryF,"\\+","
-               %20")
+  queryF<-gsub(x=queryF,"\\+","%20")
   
   ###Query Parameters  
   #Institution token - cannot be viewed in browser, save in file outside of git.

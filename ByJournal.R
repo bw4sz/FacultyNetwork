@@ -49,7 +49,6 @@ for(x in a){
 dat<-list()
 #,82
 
-#Get issn that matches each
 
 #0-200 is 2005 to 2015.
 #beginning at 200, 1995 to 2015
@@ -58,8 +57,8 @@ dat<-list()
 #Get the journal source ID
 journaldf<-list()
 
-for (x in 1:length(s)){
-    response<-getSourceID(s[x])
+for (x in 1:5){
+    response<-getSourceID(inquery = s[x])
     journaldf[[x]]<-parseSource(response,s[x])      
 }
 
