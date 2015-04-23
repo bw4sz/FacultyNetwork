@@ -1,4 +1,12 @@
+---
+title: "Academic Betadiversity and Future of Biology Research"
+author: "Ben Weinstein"
+date: "Thursday, April 23, 2015"
+output: html_document
+---
 
+
+```{r,warning=FALSE,message=FALSE}
 #Scopus Database Query By Journal Article
 library(XML)
 library(plyr)
@@ -13,15 +21,31 @@ library(knitr)
 library(bipartite)
 library(sna)
 library(igraph)
+library(knitr)
+```
 
-#source function 
+
+```{r,}
+#source functions
 source("Funtions.R")
 
+#set knitr options
+opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=6,fig.width=7,)
+```
+
+Read in data. Processed from ByJournal.R
+```{r}
 tocompare<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedData.csv")
 
+#what does it look like:
+head(tocompare)
+```
+
+Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
+
+```{r}
 #filter authors
 #distribution of publication
-hist(table(tocompare$Author))
 keep<-names(which(table(tocompare$Author)>4))
 tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
 
@@ -30,52 +54,58 @@ tocompare<-tocompare[!duplicated(tocompare),]
 
 #in case the column names in there 
 tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
+```
 
-dim(tocompare)
 
+Basic descriptive stats on results
+```{r}
+#How many journals
+paste("Number of Journals:",length(unique(tocompare$Journal)))
+
+#How many authors
+paste("Number of Authors:",length(unique(tocompare$Author)))
+
+#How many papers
+paste("Number of Papers:",length(unique(tocompare$DOI)))
+
+```
+
+How many papers from each discipline over time?
+```{r}
+class_year<-group_by(tocompare,Class,Year) %>% summarize(Papers=length(unique(DOI)))
+ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=4) + labs(x="Year")
+```
+
+Create matrix of authors in each class - analagous to the site by species matrix used in ecology
+
+```{r}
 siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
 dim(siteXspp)
+```
 
-##Biplot
-#biplot(prcomp(siteXspp,scale=T))
+#Dissimalarity among classes
 
-##Niche Overlap
-#Horn's distance between authors
-# dis<-as.matrix(vegdist(siteXspp,"horn"))
-# 
-# #set to self is NA
-# diag(dis)<-NA
-# 
-# ##Specialization
-# #visweb(siteXspp)
-# #plotweb(siteXspp)
-# 
-# #for each paper calculate niche overlap
-# tolist<-split(tocompare,tocompare$DOI)
-# niche.author<-lapply(tolist,function(x){
-#   mean(dis[rownames(dis) %in% x$Author,colnames(dis) %in% x$Author],na.rm=TRUE)
-# })
-# niche.author<-melt(niche.author)
-# 
-# #name the columns
-# names(niche.author)<-c("Niche.Overlap","DOI")
-# 
-# #merge back with data.frame
-# dat<-merge(tocompare,niche.author,by="DOI",all=T)
-# 
-# #Citations are numeric
-# dat$Citations<-as.numeric(dat$Citations)
-# 
-# #There are multiple entries per DOI, mean should be all the same
-# d<-group_by(dat,DOI) %>% select(Journal,Citations,Class,h5.index,Niche.Overlap) %>% distinct()
-# 
-# ggplot(d[d$Citations>0,],aes(x=Niche.Overlap,y=Citations)) + geom_point() + theme_bw() + stat_smooth()
+Use the abundance of papers by each author to calculate niche overlap (dist=1-Horn's) between classes. 
 
-#########Class connections
-siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
+Low overlap=0
+High overlap=1
 
+
+```{r}
 #Compare disciplines
 topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+```
+
+Visualize interactions.
+
+  * Stronger interactions are more red.
+  * Weaker interactions are blue.
+  * Stronger connections are thicker
+  * Weaker connections are thinner
+  * More central members (greater number of partners) are in larger text
+  * Less central members (fewer number of partners) are in smaller text
+  
+```{r}
 g<-graph.adjacency(topics,"undirected",weighted=TRUE)
 
 g<-simplify(g)
@@ -106,11 +136,52 @@ width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
 #label sizes
 V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
 plot(g.copy,vertex.size=6,edge.width=width)
+```
 
+View as a dendrogram
+
+```{r}
 wt <- walktrap.community(g, modularity=TRUE)
 dend <- as.dendrogram(wt, use.modularity=TRUE)
 plot(as.hclust(dend))
+```
 
+#Calculate network statistics
+
+We are interested in the centrality, modularity and compartamentalization of the biological sciences
+
+  * Betweenness - number of shortest path that includes node
+  * Degree - number of connections for each node
+  * Closeness - relative distance to all actors
+  * Coreness - 
+```{r}
+between_class<-betweenness(g.copy)
+degree_class<-degree(g.copy)
+closeness_class<-closeness(g.copy)
+corness_class<-graph.coreness(g.copy)
+eigenV<-evcent(g.copy)$vector
+vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Closeness=closeness_class,Coreness=corness_class,Eigen=eigenV)
+```
+
+Top actors for each statistic
+```{r}
+mdat<-melt(vdat)
+
+topactors<-group_by(mdat,Class,variable) %>% arrange(value) %>% top_n(5)
+bottomactors<-group_by(mdat,Class,variable) %>% arrange(desc(value)) %>% top_n(5)
+
+```
+
+```{r}
+ggplot(topactors,aes(x=Class,y=value)) + geom_bar(stat="identity") + facet_wrap(~variable,scale="free",ncol=1)
+```
+
+Relationship between eigen =vector and betweenness
+```{r}
+ggplot(aes=)
+#Network analysis for journals
+
+```{r}
 #Network analysis of journals as undirected graph
 siteXspp_j<-as.data.frame.array(table(tocompare$Author,tocompare$Journal))
 
@@ -147,7 +218,11 @@ layout1<- layout.fruchterman.reingold(g)
 g.copy <- delete.edges(g, which(E(g)$weight <.05))
 V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)+ .1
 plot(g.copy)
+```
 
+Just view one subsection - Ecology
+
+```{r}
 #Centrality of Journals
 betweenJ<-sort(betweenness(g.copy))
 
