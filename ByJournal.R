@@ -35,8 +35,6 @@ s<-gsub(x=s,"\\&+","")
 #couple malformed ones
 s<-s[-c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
 
-
-#start with the auk, s=175
 #needs to replace the the's in front of journal title
 a<-which(sapply(s,word,sep="\\+")=="The")
 for(x in a){
@@ -47,12 +45,9 @@ for(x in a){
 
 #create a data holder
 dat<-list()
-#,82
-
 
 #0-200 is 2005 to 2015.
 #beginning at 200, 1995 to 2015
-#during the while loop, r=51, x=208 , error is   'names' attribute [1] must be the same length as the vector [0]
 
 #Get the journal source ID
 journaldf<-list()
@@ -64,7 +59,7 @@ for (x in 1:length(s)){
 
 journaldf<-rbind_all(journaldf)
 
-for (x in 1:length(journaldf$ID[x])){
+for (x in 1:length(journaldf$ID)){
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
