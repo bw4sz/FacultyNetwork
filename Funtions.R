@@ -170,7 +170,7 @@ currentCount<-function(response){
 #run for each year
 allyears<-function(query,yearrange){
   out<-list()
-  for(x in 1:length(yearrange)){
+  for(y in 1:length(yearrange)){
     
     yeardat<-list()
       
@@ -179,7 +179,7 @@ allyears<-function(query,yearrange){
       r<-1
   
       #Get initial query
-      response<-scquery(query,yearrange[x])
+      response<-scquery(inquery=query,yearrange[y])
       
       if(!response$status_code==200){next}
     
@@ -191,23 +191,31 @@ allyears<-function(query,yearrange){
       yeardat[[r]]<-response
       
       #break function if no response
-      if(tresults==0){return("No matches")}
+      if(tresults==0){
+        yeardat[[r]]<-NA
+        next
+      }
     
       #Iterate until we get all results
       while(!tcount==tresults){
         r=r+1
         newrequest<-paste(response[[1]],"&start=",tcount,sep="")
         newresponse<-GET(newrequest)
+        if(!newresponse$status_code==200){break}
         yeardat[[r]]<-newresponse
-        tcount<-tcount+currentCount(newresponse)        
+        tcount<-tcount+currentCount(newresponse)
+        #build in break for now
       }
       
       #remove blank
       yeardat<-yeardat[!sapply(yeardat,length)==0]
       
+      #remove if only one hit
+      yeardat<-yeardat[!lapply(yeardat,currentCount)==1]
+    
       #bind the yeardat
       out[[x]]<-rbind_all(lapply(yeardat,sc_parse))
-      print(paste(str_extract(query,"\\(.*?\\)"),yearrange[x]))
+      print(paste(str_extract(query,"\\(.*?\\)"),yearrange[y]))
   }
   
   dat<-rbind_all(out[!sapply(out,length)==1])
@@ -219,4 +227,58 @@ allyears<-function(query,yearrange){
   s <- strsplit(x, " ")[[1]]
   paste(toupper(substring(s, 1, 1)), substring(s, 2),
         sep = "", collapse = " ")
+}
+
+getSourceID<-function(inquery){
+  
+  #
+  query<-paste("title=",inquery,sep="")
+  
+  #url encoding
+  #reform query to html encoded
+  queryF<-gsub(x=query,"\\(","%28")
+  queryF<-gsub(x=queryF,"\\)","%29")
+  queryF<-gsub(x=queryF,"\\+","
+               %20")
+  
+  ###Query Parameters  
+  #Institution token - cannot be viewed in browser, save in file outside of git.
+  inst.token<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/InstToken.txt")
+  apiKey<-readLines("C:/Users/Ben/Dropbox/FacultyNetwork/apikey.txt")  
+  
+  #format string
+  toget<-"https://api.elsevier.com/content/serial/title?&httpAccept=application/xml&count=100"
+    
+  #bind
+  toget<-paste(toget,queryF,sep="&")
+  
+  #add in api and institutional key
+  toget<-paste(toget,"&apiKey=",apiKey,sep="")
+  toget<-paste(toget,"&insttoken=",inst.token,sep="")
+  
+  #Request query
+  #call
+  response <- GET(toget)
+  
+}
+
+parseSource<-function(response,inquery){
+ 
+  if(!response$status_code==200){return(NA)}
+  
+  xml <- xmlInternalTreeParse(response)
+  xmltop<-xmlRoot(xml)
+  
+  #define name spaces
+  nsDefs<-xmlNamespaceDefinitions(xmltop)
+  ns <- structure(sapply(nsDefs, function(x) x$uri), names = names(nsDefs))
+  
+  #Get current results total
+  title<-xpathSApply(xmltop,"//dc:title",xmlValue,namespaces=ns)
+  ID<-xpathSApply(xmltop,"//source-id",xmlValue,namespaces=ns)
+  r<-data.frame(title=title,ID=ID,query=inquery)
+  
+  #just get the one that matches
+  r<-r[toupper(r$title) %in% toupper(gsub(inquery,pattern="\\+",replacement=" ")),]
+  return(r)
 }

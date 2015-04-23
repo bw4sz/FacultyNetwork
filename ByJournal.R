@@ -35,6 +35,7 @@ s<-gsub(x=s,"\\&+","")
 #couple malformed ones
 s<-s[-c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
 
+
 #start with the auk, s=175
 #needs to replace the the's in front of journal title
 a<-which(sapply(s,word,sep="\\+")=="The")
@@ -46,25 +47,38 @@ for(x in a){
 
 #create a data holder
 dat<-list()
+#,82
 
-for (x in 201:250){
+#Get issn that matches each
+
+#0-200 is 2005 to 2015.
+#beginning at 200, 1995 to 2015
+#during the while loop, r=51, x=208 , error is   'names' attribute [1] must be the same length as the vector [0]
+
+#Get the journal source ID
+journaldf<-list()
+
+for (x in 1:length(s)){
+    response<-getSourceID(s[x])
+    journaldf[[x]]<-parseSource(response,s[x])      
+}
+
+journaldf<-rbind_all(journaldf)
+
+for (x in 208:300){
   print(x)
   #get articles from a journal and parse it
-  q<-paste("exactsrctitle(",s[x],")",sep="")
+  q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=2005:2015)
+  responses<-allyears(query=q,yearrange=1995:2015)
   
-  #parse result
+    #parse result
   dat[[x]]<-responses
 }
 
 #bind journals, remove no matched
 df<-rbind_all(dat[!lapply(dat,length)==1])
-
-#Build Dissimilarity matrix
-#Merge table classification
-tocompare$Journal<-as.factor(tocompare$Journal)
 
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
@@ -83,6 +97,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"Data/ParsedData.csv",append=T,sep=",",col.names=F,row.names=F)
+write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,sep=",",col.names=F,row.names=F)
 
-save.image("Journal.RData")
+#save.image("Journal.RData")
