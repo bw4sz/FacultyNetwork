@@ -65,7 +65,7 @@ for (x in 1:length(s)){
 
 journaldf<-rbind_all(journaldf)
 
-for (x in 208:300){
+for (x in 3){
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -97,6 +97,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,sep=",",col.names=F,row.names=F)
+write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=F,sep=",",col.names=T,row.names=F)
 
 #save.image("Journal.RData")
