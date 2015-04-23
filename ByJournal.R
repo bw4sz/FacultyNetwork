@@ -57,14 +57,14 @@ dat<-list()
 #Get the journal source ID
 journaldf<-list()
 
-for (x in 1:5){
+for (x in 1:length(s)){
     response<-getSourceID(inquery = s[x])
     journaldf[[x]]<-parseSource(response,s[x])      
 }
 
 journaldf<-rbind_all(journaldf)
 
-for (x in 3){
+for (x in 1:length(journaldf$ID[x])){
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -96,6 +96,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=F,sep=",",col.names=T,row.names=F)
+write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,sep=",",col.names=F,row.names=F)
 
 #save.image("Journal.RData")
