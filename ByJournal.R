@@ -49,18 +49,24 @@ dat<-list()
 #0-200 is 2005 to 2015.
 #beginning at 200, 1995 to 2015
 
-#Get the journal source ID
-journaldf<-list()
+# #Get the journal source ID
+# journaldf<-list()
+# 
+# for (x in 1:length(s)){
+#     response<-getSourceID(inquery = s[x])
+#     journaldf[[x]]<-parseSource(response,s[x])      
+# }
+# 
+# #bind together, after ignoring the blank rows
+# journaldf<-rbind_all(journaldf[!sapply(journaldf,length)==1])
+# 
+# journaldf<-journaldf[!duplicated(journaldf),]
+# 
+# #write to file if needed
+# write.csv(journaldf,"C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv")
 
-for (x in 1:length(s)){
-    response<-getSourceID(inquery = s[x])
-    journaldf[[x]]<-parseSource(response,s[x])      
-}
-
-#bind together, after ignoring the blank rows
-journaldf<-rbind_all(journaldf[!sapply(journaldf,length)==1])
-
-journaldf[!duplicated(journaldf),]
+#if needed read in
+journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
 for (x in 210:length(journaldf$ID)){
   print(x)
