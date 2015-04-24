@@ -204,7 +204,6 @@ allyears<-function(query,yearrange){
         if(!newresponse$status_code==200){break}
         yeardat[[r]]<-newresponse
         tcount<-tcount+currentCount(newresponse)
-        #build in break for now
       }
       
       #remove blank
@@ -214,7 +213,7 @@ allyears<-function(query,yearrange){
       yeardat<-yeardat[!lapply(yeardat,currentCount)==1]
     
       #bind the yeardat
-      out[[x]]<-rbind_all(lapply(yeardat,sc_parse))
+      out[[y]]<-rbind_all(lapply(yeardat,sc_parse))
       print(paste(str_extract(query,"\\(.*?\\)"),yearrange[y]))
   }
   
