@@ -57,9 +57,12 @@ for (x in 1:length(s)){
     journaldf[[x]]<-parseSource(response,s[x])      
 }
 
-journaldf<-rbind_all(journaldf)
+#bind together, after ignoring the blank rows
+journaldf<-rbind_all(journaldf[!sapply(journaldf,length)==1])
 
-for (x in 1:length(journaldf$ID)){
+journaldf[!duplicated(journaldf),]
+
+for (x in 210:length(journaldf$ID)){
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
