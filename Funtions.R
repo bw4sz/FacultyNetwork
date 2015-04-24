@@ -275,6 +275,9 @@ parseSource<-function(response,inquery){
   #Get current results total
   title<-xpathSApply(xmltop,"//dc:title",xmlValue,namespaces=ns)
   ID<-xpathSApply(xmltop,"//source-id",xmlValue,namespaces=ns)
+  
+  if(length(title)==0){return(NA)}
+  
   r<-data.frame(title=title,ID=ID,query=inquery)
   
   #just get the one that matches
