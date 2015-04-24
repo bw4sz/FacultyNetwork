@@ -281,3 +281,35 @@ parseSource<-function(response,inquery){
   r<-r[toupper(r$title) %in% toupper(gsub(inquery,pattern="\\+",replacement=" ")),]
   return(r)
 }
+
+
+##Horizontal ggplot
+
+geom_bar_horz <- function (mapping = NULL, data = NULL, stat = "bin", position = "stack", ...) {
+  GeomBar_horz$new(mapping = mapping, data = data, stat = stat, position = position, ...)
+}
+
+GeomBar_horz <- proto(ggplot2:::Geom, {
+  objname <- "bar_horz"
+  
+  default_stat <- function(.) StatBin
+  default_pos <- function(.) PositionStack
+  default_aes <- function(.) aes(colour=NA, fill="grey20", size=0.5, linetype=1, weight = 1, alpha = NA)
+  
+  required_aes <- c("y")
+  
+  reparameterise <- function(., df, params) {
+    df$width <- df$width %||%
+      params$width %||% (resolution(df$x, FALSE) * 0.9)
+    OUT <- transform(df,
+                     xmin = pmin(x, 0), xmax = pmax(x, 0),
+                     ymin = y - .45, ymax = y + .45, width = NULL
+    )
+    return(OUT)
+  }
+  
+  draw_groups <- function(., data, scales, coordinates, ...) {
+    GeomRect$draw_groups(data, scales, coordinates, ...)
+  }
+  guide_geom <- function(.) "polygon"
+})
