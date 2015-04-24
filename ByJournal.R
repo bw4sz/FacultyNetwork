@@ -71,15 +71,15 @@ journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.name
 #create a data holder
 #dat<-list()
 
-cl<-makeCluster(2,"SOCK")
+cl<-makeCluster(10,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=1:2,.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=1:length(journaldf$ID),.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=1995:1997)
+  responses<-allyears(query=q,yearrange=1995:2015)
   
     #parse result
   #dat[[x]]<-responses
@@ -109,4 +109,4 @@ tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
 write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,sep=",",col.names=F,row.names=F)
 
-#save.image("Journal.RData")
+save.image("Journal.RData")
