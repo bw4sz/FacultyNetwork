@@ -28,7 +28,7 @@ library(knitr)
 library(gridExtra)
 library(GGally)
 library(stringr)
-library(d3network)
+library(networkD3)
 ```
 
 
@@ -37,7 +37,7 @@ library(d3network)
 source("Funtions.R")
 
 #set knitr options
-opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=6,fig.width=7)
+opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=9,fig.width=14,warning=F,message=F)
 ```
 
 Read in data. Processed from ByJournal.R
@@ -212,7 +212,7 @@ colnames(yeardat)<-c("To","From","Niche.Overlap","Year")
 ```
 
 Remove extremely weak connections 
-```{r}
+```{r,fig.width=13}
 #remove very weak connections
 #work from an example data
 #make into characters
@@ -230,7 +230,7 @@ ggplot(exdat,aes(x=Year,y=Niche.Overlap,col=From)) + geom_point() + geom_smooth(
 
 Its not clear to me if i need to use a time-series model. The connection at time A should be independent of connection at time A+1. While they may be related due to the trend - there is no mechanistic connection among publications between years. Its not like a population, where the number of available producers directly influences the offspring in the next year. For the moment, i'm just using a linear model with year as a continious variable. This probably needs to change.
 
-#first pass just fit a linear line and determine if its positive or negative
+first pass just fit a linear line and determine if its positive or negative
 
 ```{r}
 exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
@@ -265,7 +265,6 @@ Negative values are significantly decreasing connections
 
 ```{r}
 tmod$svalue<-scale(tmod$estimate)
-hist(tmod$estimate)
 
 ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -274,31 +273,17 @@ That's not very attractive. Have to think how to do be
 Sankey diagram of connection strength change
 
 #D3 Networks
-```{r}
-
-Links<-tmod[,c("To","From","estimate")]
-#list of nodes
-a<-data.frame(name=unique(c(tmod$To,tmod$From)))
-Links$source<-sapply(Links$To,function(x) which(x ==a$name))
-Links$target<-sapply(Links$From,function(x) which(x ==a$name))
-Links$value<-Links$estimate
-
-sankeyNetwork(Links = Links, Nodes = data.frame(name=a),
-              Source = "source", Target = "target",
-              Value = "value", NodeID = "name",
-              width = 700, fontsize = 12, nodeWidth = 30)
-```
 
 ###D3 Visualizations
 
 The wonderful D3 package connections!
 
-```{r}
+```{r,cache=FALSE}
 MisLinks<-melt(topics)
 
 #remove very weak connections
 MisLinks<-MisLinks[MisLinks$value > 0.05,]
-
+MisLinks$value<-MisLinks$value*10
 colnames(MisLinks)<-c("To","From","value")
 MisLinks$To<-as.character(MisLinks$To)
 MisLinks$From<-as.character(MisLinks$From)
@@ -316,15 +301,22 @@ MisLinks<-MisLinks[order(MisLinks$source),]
 #remove NA's
 MisLinks<-MisLinks[!is.na(MisLinks$value),]
 
-d3SimpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html')
-d3SimpleNetwork(MisLinks,height=500,width=700)
+simpleNetwork(MisLinks,height=500,width=500)
+```
+
+```{r,cache=F}
+simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html')
 ```
 
 ##Force based network
 
-```{r}
-d3Network::d3ForceNetwork(Links = MisLinks, Nodes = MisNodes,Source = "source", Target = "target",Value = "value", Group = "Group" ,NodeID = "name", width = 700, height = 800)
+```{r,cache=F}
+data(MisLinks, MisNodes)
+forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
+             Target = "target", Value = "value", NodeID = "name",
+             Group = "group", opacity = 0.4,height=300,width=500)
 ```
+
 
 ```{r}
 save.image("Analysis.RData")
