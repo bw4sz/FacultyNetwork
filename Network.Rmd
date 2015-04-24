@@ -1,0 +1,331 @@
+---
+title: "Academic Betadiversity and Future of Biology Research"
+author: "Ben Weinstein"
+date: "Thursday, April 23, 2015"
+output: html_document
+---
+
+
+```{r,warning=FALSE,message=FALSE}
+#Scopus Database Query By Journal Article
+library(XML)
+library(proto)
+library(magrittr)
+library(broom)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(httr)
+library(stringr)
+library(chron)
+library(vegan)
+library(knitr)
+library(bipartite)
+library(sna)
+library(igraph)
+library(knitr)
+library(gridExtra)
+library(GGally)
+library(stringr)
+library(d3network)
+```
+
+
+```{r,}
+#source functions
+source("Funtions.R")
+
+#set knitr options
+opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=6,fig.width=7)
+```
+
+Read in data. Processed from ByJournal.R
+```{r}
+tocompare<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedData.csv")
+
+#what does it look like:
+head(tocompare)
+```
+
+Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
+
+```{r}
+#filter authors
+#distribution of publication
+keep<-names(which(table(tocompare$Author)>4))
+tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
+
+#remove duplicates.
+tocompare<-tocompare[!duplicated(tocompare),]
+
+#in case the column names in there 
+tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
+```
+
+
+Basic descriptive stats on results
+```{r}
+#How many journals
+paste("Number of Journals:",length(unique(tocompare$Journal)))
+
+#How many authors
+paste("Number of Authors:",length(unique(tocompare$Author)))
+
+#How many papers
+paste("Number of Papers:",length(unique(tocompare$DOI)))
+
+```
+
+How many papers from each discipline over time?
+```{r}
+class_year<-group_by(tocompare,Class,Year) %>% summarize(Papers=length(unique(DOI)))
+ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=4) + labs(x="Year")
+```
+
+Create matrix of authors in each class - analagous to the site by species matrix used in ecology
+
+```{r}
+siteXspp<-as.data.frame.array(table(tocompare$Author,tocompare$Class))
+dim(siteXspp)
+```
+
+#Dissimalarity among classes
+
+Use the abundance of papers by each author to calculate niche overlap (dist=1-Horn's) between classes. 
+
+Low overlap=0
+High overlap=1
+
+
+```{r}
+#Compare disciplines
+topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+```
+
+Visualize interactions.
+
+  * Stronger interactions are more red.
+  * Weaker interactions are blue.
+  * Stronger connections are thicker
+  * Weaker connections are thinner
+  * More central members (greater number of partners) are in larger text
+  * Less central members (fewer number of partners) are in smaller text
+  
+```{r}
+g<-graph.adjacency(topics,"undirected",weighted=TRUE)
+
+g<-simplify(g)
+
+# set labels and degrees of vertices
+V(g)$label <- V(g)$name
+V(g)$degree <- degree(g)
+layout1 <- layout.fruchterman.reingold(g)
+
+V(g)$label.color <- rgb(0, 0, .2, .8)
+V(g)$frame.color <- NA
+egam=E(g)$weight/max(E(g)$weight)
+E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
+
+ramp <- colorRamp(c("blue","red"),alpha=T)
+
+E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+
+# plot the graph in layout1
+layout1<- layout.fruchterman.reingold(g)
+
+#If you need to delete
+g.copy <- delete.edges(g, which(E(g)$weight<.05))
+#width
+width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
+
+#label sizes
+V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
+plot(g.copy,vertex.size=6,edge.width=width)
+```
+
+View as a dendrogram
+
+```{r}
+wt <- walktrap.community(g, modularity=TRUE)
+dend <- as.dendrogram(wt, use.modularity=TRUE)
+plot(as.hclust(dend))
+```
+
+#Calculate network statistics
+
+We are interested in the centrality, modularity and compartamentalization of the biological sciences
+
+  * Betweenness - number of shortest path that includes node. This tends to find gatekeeps among components.
+  * Degree - number of connections for each node
+  * Closeness - relative distance to all actors
+  * Coreness - The centrality of network position.
+  * Eigenvector centrality: A node is important if it is connected to many important nodes. A node with a small number of influential contacts will be better than a larger number of mediocre contacts.
+```{r}
+between_class<-betweenness(g.copy)
+degree_class<-degree(g.copy)
+closeness_class<-closeness(g.copy)
+eigenV<-evcent(g.copy)$vector
+vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Closeness=closeness_class,Eigen=eigenV)
+```
+
+Correlation among importance measures.
+
+```{r}
+ggpairs(vdat[,-1])
+```
+
+Top actors for each statistic
+```{r}
+mdat<-melt(vdat)
+colnames(mdat)<-c("Class","Metric","Score")
+
+topactors<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
+bottomactors<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(desc(Score)) 
+dt<-droplevels(rbind(topactors,bottomactors))
+```
+
+```{r}
+ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric)
+```
+
+##Connectance through time
+
+```{r}
+yearcompare<-split(tocompare,tocompare$Year)
+
+yeardat<-lapply(yearcompare,function(x){
+  siteXspp<-droplevels(as.data.frame.array(table(x$Author,x$Class)))
+  
+  #drop empty rows and colums
+  siteXspp<-siteXspp[rownames(siteXspp) %in% names(which(apply(siteXspp,1,sum) > 0)),colnames(siteXspp) %in% names(which(apply(siteXspp,2,sum) > 0))]
+  
+  #Compare disciplines
+  topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+  diag(topics)<-NA
+  topics[upper.tri(topics)]<-NA
+  return(topics)
+})
+
+yeardat<-melt(yeardat)
+colnames(yeardat)<-c("To","From","Niche.Overlap","Year")
+```
+
+Remove extremely weak connections 
+```{r}
+#remove very weak connections
+#work from an example data
+#make into characters
+yeardat$To<-as.character(yeardat$To)
+yeardat$From<-as.character(yeardat$From)
+
+#remove weak connections
+exdat<-group_by(yeardat,To,From) %>% filter(Niche.Overlap>0.02 & !is.na(Niche.Overlap))
+
+exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
+ggplot(exdat,aes(x=Year,y=Niche.Overlap,col=From)) + geom_point() + geom_smooth(aes(group=Combo)) + facet_wrap(~To,scales="free",ncol=4) + theme_bw()
+```
+
+##trend estimation
+
+Its not clear to me if i need to use a time-series model. The connection at time A should be independent of connection at time A+1. While they may be related due to the trend - there is no mechanistic connection among publications between years. Its not like a population, where the number of available producers directly influences the offspring in the next year. For the moment, i'm just using a linear model with year as a continious variable. This probably needs to change.
+
+#first pass just fit a linear line and determine if its positive or negative
+
+```{r}
+exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
+
+#year is a number value for the moment
+exdat$Year<-as.numeric(exdat$Year)-2000
+
+sdat<-split(exdat,exdat$Combo)
+
+#get rid of combinations with less than ten years of points
+sdat<-sdat[lapply(sdat,nrow) > 10]
+
+#
+# Break up d by state, then fit the specified model to each piece and
+# return a list
+tmod<-rbind_all(lapply(sdat,function(df){
+  tdat<-tidy(lm(Niche.Overlap ~ Year, data = df))
+  tdat<-tdat[tdat$term =="Year",]
+  tdat$Combo<-unique(df$Combo)
+  return(tdat)
+}))
+
+#extract names into columns
+tmod$To<-str_match(tmod$Combo,"(\\w+.\\w+)-")[,2]
+tmod$From<-str_match(tmod$Combo,"-(\\w+.\\w+)")[,2]
+```
+
+Visualize effect over time
+
+Positive values are significantly increasing connections
+Negative values are significantly decreasing connections
+
+```{r}
+tmod$svalue<-scale(tmod$estimate)
+hist(tmod$estimate)
+
+ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+That's not very attractive. Have to think how to do be
+Sankey diagram of connection strength change
+
+#D3 Networks
+```{r}
+
+Links<-tmod[,c("To","From","estimate")]
+#list of nodes
+a<-data.frame(name=unique(c(tmod$To,tmod$From)))
+Links$source<-sapply(Links$To,function(x) which(x ==a$name))
+Links$target<-sapply(Links$From,function(x) which(x ==a$name))
+Links$value<-Links$estimate
+
+sankeyNetwork(Links = Links, Nodes = data.frame(name=a),
+              Source = "source", Target = "target",
+              Value = "value", NodeID = "name",
+              width = 700, fontsize = 12, nodeWidth = 30)
+```
+
+###D3 Visualizations
+
+The wonderful D3 package connections!
+
+```{r}
+MisLinks<-melt(topics)
+
+#remove very weak connections
+MisLinks<-MisLinks[MisLinks$value > 0.05,]
+
+colnames(MisLinks)<-c("To","From","value")
+MisLinks$To<-as.character(MisLinks$To)
+MisLinks$From<-as.character(MisLinks$From)
+
+MisNodes<-data.frame(name=sort(as.character(unique(c(MisLinks$To,MisLinks$From)))))
+#Add groups
+MisNodes$Group=1
+
+MisLinks$source<-sapply(MisLinks$To,function(x) which(x ==MisNodes$name))
+MisLinks$target<-sapply(MisLinks$From,function(x) which(x ==MisNodes$name))
+
+#Order by source
+MisLinks<-MisLinks[order(MisLinks$source),]
+
+#remove NA's
+MisLinks<-MisLinks[!is.na(MisLinks$value),]
+
+d3SimpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html')
+d3SimpleNetwork(MisLinks,height=500,width=700)
+```
+
+##Force based network
+
+```{r}
+d3Network::d3ForceNetwork(Links = MisLinks, Nodes = MisNodes,Source = "source", Target = "target",Value = "value", Group = "Group" ,NodeID = "name", width = 700, height = 800)
+```
+
+```{r}
+save.image("Analysis.RData")
+```

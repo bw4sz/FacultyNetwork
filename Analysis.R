@@ -17,7 +17,7 @@ library(igraph)
 #source function 
 source("Funtions.R")
 
-tocompare<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv")
+tocompare<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedData.csv")
 
 #filter authors
 #distribution of publication
