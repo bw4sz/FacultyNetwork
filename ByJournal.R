@@ -11,6 +11,8 @@ library(chron)
 library(vegan)
 library(knitr)
 library(bipartite)
+library(doSNOW)
+library(foreach)
 library(igraph)
 
 #source function 
@@ -43,9 +45,6 @@ for(x in a){
   s[x]<-torep
 }
 
-#create a data holder
-dat<-list()
-
 #0-200 is 2005 to 2015.
 #beginning at 200, 1995 to 2015
 
@@ -68,17 +67,25 @@ dat<-list()
 #if needed read in
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
-for (x in 210:length(journaldf$ID)){
+
+#create a data holder
+#dat<-list()
+
+cl<-makeCluster(2,"SOCK")
+registerDoSNOW(cl)
+dat<-foreach(x=1:2,.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=1995:2015)
+  responses<-allyears(query=q,yearrange=1995:1997)
   
     #parse result
-  dat[[x]]<-responses
+  #dat[[x]]<-responses
+  return(responses)
 }
+stopCluster(cl)
 
 #bind journals, remove no matched
 df<-rbind_all(dat[!lapply(dat,length)==1])
