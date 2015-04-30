@@ -45,8 +45,7 @@ for(x in a){
   s[x]<-torep
 }
 
-#0-200 is 2005 to 2015.
-#beginning at 200, 1995 to 2015
+#need to start at journal of biological chemistry 2007
 
 # #Get the journal source ID
 # journaldf<-list()
@@ -91,8 +90,6 @@ stopCluster(cl)
 #correct runs have length of 7
 df<-rbind_all(dat[!lapply(dat,length)==7])
 
-df<-rbind_all(dat[1:50])
-
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
 j_class$Publication<-sapply(j_class$Publication,.simpleCap)
@@ -110,6 +107,6 @@ tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication")
 tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
 tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,sep=",",col.names=F,row.names=F)
+write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,col.names=F,row.names=F,sep=",")
 
 save.image("Journal.RData")

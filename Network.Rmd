@@ -42,10 +42,15 @@ opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=9,fig.width=14,warni
 
 Read in data. Processed from ByJournal.R
 ```{r}
-tocompare<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedData.csv")
+#journal class
+journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
+
+tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
 
 #what does it look like:
-head(tocompare)
+tail(tocompare)
+
+dim(tocompare)
 ```
 
 Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
@@ -53,7 +58,7 @@ Basic data cleaning. We only want records from active authors. Atleast 5 publica
 ```{r}
 #filter authors
 #distribution of publication
-keep<-names(which(table(tocompare$Author)>4))
+keep<-names(which(table(tocompare$Author)>3))
 tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
 
 #remove duplicates.
@@ -61,6 +66,15 @@ tocompare<-tocompare[!duplicated(tocompare),]
 
 #in case the column names in there 
 tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
+dim(tocompare)
+
+#take out malformed lines
+tocompare<-tocompare[which(!str_detect(tocompare$Journal, "SCOPUS")),]
+
+dim(tocompare)
+tocompare<-droplevels(tocompare[which(!str_detect(tocompare$h5.index, "SCOPUS")),])
+dim(tocompare)
+
 ```
 
 
@@ -75,6 +89,9 @@ paste("Number of Authors:",length(unique(tocompare$Author)))
 #How many papers
 paste("Number of Papers:",length(unique(tocompare$DOI)))
 
+ta<-sort(table(tocompare$Journal))
+print("Most published journals")
+tail(ta)
 ```
 
 How many papers from each discipline over time?
