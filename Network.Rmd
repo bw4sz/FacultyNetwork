@@ -37,7 +37,7 @@ library(networkD3)
 source("Funtions.R")
 
 #set knitr options
-opts_chunk$set(echo=T,cache=T,fig.align='center',fig.height=9,fig.width=14,warning=F,message=F)
+opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=9,fig.width=14,warning=F,message=F)
 ```
 
 Read in data. Processed from ByJournal.R
@@ -68,8 +68,14 @@ tocompare<-tocompare[!duplicated(tocompare),]
 tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
 dim(tocompare)
 
+j_class<-read.csv("Class.csv",row.names=1)
+
+#in case there are malformed classes
+tocompare<-droplevels(tocompare[tocompare$Class %in% j_class$Class,])
+
 #take out malformed lines
 tocompare<-tocompare[which(!str_detect(tocompare$Journal, "SCOPUS")),]
+
 
 dim(tocompare)
 tocompare<-droplevels(tocompare[which(!str_detect(tocompare$h5.index, "SCOPUS")),])
