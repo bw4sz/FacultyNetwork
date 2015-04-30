@@ -73,7 +73,7 @@ journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.name
 
 cl<-makeCluster(10,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=1:length(journaldf$ID),.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=350:400,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -88,7 +88,10 @@ dat<-foreach(x=1:length(journaldf$ID),.packages=c("httr","XML","reshape2","plyr"
 stopCluster(cl)
 
 #bind journals, remove no matched
-df<-rbind_all(dat[!lapply(dat,length)==1])
+#correct runs have length of 7
+df<-rbind_all(dat[!lapply(dat,length)==7])
+
+df<-rbind_all(dat[1:50])
 
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
