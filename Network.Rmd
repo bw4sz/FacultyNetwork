@@ -45,7 +45,7 @@ Read in data. Processed from ByJournal.R
 #journal class
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
-tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T,nrows=3000000)
+tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T,nrows=2000000)
 
 #what does it look like:
 tail(tocompare)
@@ -214,12 +214,14 @@ ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="ident
 
 ##Network stats over time
 ```{r}
+
+#split into a time frame 5 years?
 yearcompare<-split(tocompare,tocompare$Year)
 
 yearstats<-lapply(yearcompare,calcN)
 head(yearstats)
 yearstats<-melt(yearstats)
-ggplot(yearstats,aes(x=L1,y=value,col=Class)) + geom_point() + geom_line(aes(group=Class)) + facet_wrap(~variable,scales="free",ncol=1) 
+ggplot(yearstats,aes(x=L1,y=value,col=Class)) + geom_point() +geom_line(aes(group=Class)) + facet_wrap(~variable,scales="free",ncol=1) 
 ```
 
 ##Connectance through time
@@ -319,33 +321,32 @@ colnames(MisLinks)<-c("To","From","value")
 MisLinks$To<-as.character(MisLinks$To)
 MisLinks$From<-as.character(MisLinks$From)
 
-MisNodes<-data.frame(name=sort(as.character(unique(c(MisLinks$To,MisLinks$From)))))
+MisNodes<-data.frame(name=as.factor(sort(as.character(unique(c(MisLinks$To,MisLinks$From))))))
 #Add groups
-MisNodes$Group=1
+MisNodes$group<-as.integer(1)
 
-MisLinks$source<-sapply(MisLinks$To,function(x) which(x ==MisNodes$name))
-MisLinks$target<-sapply(MisLinks$From,function(x) which(x ==MisNodes$name))
+MisLinks$source<-as.integer(sapply(MisLinks$To,function(x) which(x ==MisNodes$name)))-1
+MisLinks$target<-as.integer(sapply(MisLinks$From,function(x) which(x ==MisNodes$name)))-1
 
 #Order by source
 MisLinks<-MisLinks[order(MisLinks$source),]
 
-#remove NA's
-MisLinks<-MisLinks[!is.na(MisLinks$value),]
-
-simpleNetwork(MisLinks,height=500,width=500)
+simpleNetwork(MisLinks,fontSize = 15)
 ```
 
 ```{r,cache=F}
-simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html')
+simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html',selfcontained=F)
 ```
 
 ##Force based network
 
 ```{r,cache=F}
-data(MisLinks, MisNodes)
-forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
+d3Network::d3ForceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",Target = "target", Value = "value", NodeID = "name", Group = "group", opacity = 0.9,file="Net3.html") 
+
+#copy to modify
+networkD3::forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
              Target = "target", Value = "value", NodeID = "name",
-             Group = "group", opacity = 0.4,height=300,width=500)
+             Group = "group", opacity = 0.9) %>% networkD3::saveNetwork("Net2.html",selfcontained=F)
 ```
 
 
