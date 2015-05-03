@@ -1,4 +1,5 @@
 
+
 #Scopus Database Query By Journal Article
 library(XML)
 library(plyr)

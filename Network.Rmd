@@ -45,7 +45,7 @@ Read in data. Processed from ByJournal.R
 #journal class
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
-tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T,nrows=2000000)
+tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
 
 #what does it look like:
 tail(tocompare)
@@ -338,7 +338,7 @@ Negative values are significantly decreasing connections
 tmod$svalue<-scale(tmod$estimate)
 
 ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x="",y="")
-ggsave("InteractionsTime.svg",res=300)
+ggsave("InteractionsTime.svg",dpi=300)
 ggsave("InteractionsTime.jpeg",height=7,width=7) 
 
 ```
