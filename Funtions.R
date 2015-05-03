@@ -361,3 +361,82 @@ calcN<-function(x){
   vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Closeness=closeness_class,Eigen=eigenV)
  return(vdat) 
 }
+CalcG<-function(x){
+x<-droplevels(x)
+siteXspp<-as.data.frame.array(table(x$Author,x$Class))
+
+topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+
+g<-graph.adjacency(topics,"undirected",weighted=TRUE)
+
+g<-simplify(g)
+
+# set labels and degrees of vertices
+V(g)$label <- V(g)$name
+V(g)$degree <- degree(g)
+layout1 <- layout.fruchterman.reingold(g)
+
+V(g)$label.color <- rgb(0, 0, .2, .8)
+V(g)$frame.color <- NA
+egam=E(g)$weight/max(E(g)$weight)
+E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
+
+ramp <- colorRamp(c("blue","red"),alpha=T)
+
+E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+
+# plot the graph in layout1
+layout1<- layout.fruchterman.reingold(g)
+
+#If you need to delete
+g.copy <- delete.edges(g, which(E(g)$weight<.05))
+#width
+width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
+
+#label sizes
+V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
+
+#connectance
+gdensity<-graph.density(g.copy)
+
+}
+
+
+CalcDD<-function(x){
+  x<-droplevels(x)
+  siteXspp<-as.data.frame.array(table(x$Author,x$Class))
+  
+  topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
+  
+  g<-graph.adjacency(topics,"undirected",weighted=TRUE)
+  
+  g<-simplify(g)
+  
+  # set labels and degrees of vertices
+  V(g)$label <- V(g)$name
+  V(g)$degree <- degree(g)
+  layout1 <- layout.fruchterman.reingold(g)
+  
+  V(g)$label.color <- rgb(0, 0, .2, .8)
+  V(g)$frame.color <- NA
+  egam=E(g)$weight/max(E(g)$weight)
+  E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
+  
+  ramp <- colorRamp(c("blue","red"),alpha=T)
+  
+  E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+  
+  # plot the graph in layout1
+  layout1<- layout.fruchterman.reingold(g)
+  
+  #If you need to delete
+  g.copy <- delete.edges(g, which(E(g)$weight<.05))
+  #width
+  width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
+  
+  #label sizes
+  V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
+  dd<-degree.distribution(g.copy)
+  return(as.matrix(dd))
+  }
+  

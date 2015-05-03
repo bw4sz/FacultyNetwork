@@ -20,8 +20,6 @@ font: 7px serif;
 opacity: 0.9;
 pointer-events: none;
 }
-
-
 </style>
 
 <script src=http://d3js.org/d3.v3.min.js></script>
@@ -33,7 +31,7 @@ pointer-events: none;
 height = 600;
 
 var color = d3.scale.category20();
- 
+
 var force = d3.layout.force()
 .nodes(d3.values(nodes))
 .links(links)
@@ -64,40 +62,14 @@ var node = svg.selectAll(".node")
 .call(force.drag);
 
 node.append("circle")
-.attr("r", 7)
+.attr("r", 6)
 
-node.append("text")
+node.append("svg:text")
+.attr("class", "nodetext")
 .attr("dx", 12)
 .attr("dy", ".35em")
-.text(function(d) { return d.name })
-.style("stroke", "gray");
+.text(function(d) { return d.name });
 
-force.on("tick", function () {
-    link.attr("x1", function (d) {
-        return d.source.x;
-    })
-        .attr("y1", function (d) {
-        return d.source.y;
-    })
-        .attr("x2", function (d) {
-        return d.target.x;
-    })
-        .attr("y2", function (d) {
-        return d.target.y;
-    });
-    d3.selectAll("circle").attr("cx", function (d) {
-        return d.x;
-    })
-        .attr("cy", function (d) {
-        return d.y;
-    });
-    d3.selectAll("text").attr("x", function (d) {
-        return d.x;
-    })
-        .attr("y", function (d) {
-        return d.y;
-    });
-});
 function tick() {
 link
 .attr("x1", function(d) { return d.source.x; })

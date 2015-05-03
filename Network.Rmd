@@ -104,6 +104,7 @@ How many papers from each discipline over time?
 ```{r}
 class_year<-group_by(tocompare,Class,Year) %>% summarize(Papers=length(unique(DOI)))
 ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=4) + labs(x="Year")
+ggsave("Figures/Papers_Year.svg",dpi=300)
 ```
 
 Create matrix of authors in each class - analagous to the site by species matrix used in ecology
@@ -165,6 +166,16 @@ width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
 #label sizes
 V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
 plot(g.copy,vertex.size=6,edge.width=width)
+
+#save full  network
+svg(filename = "Figures/Overall_NetworkIgraph.svg")
+plot(g.copy,vertex.size=6,edge.width=width)
+dev.off()
+
+jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=300,height=10,width=8,units="in")
+plot(g.copy,vertex.size=6,edge.width=width)
+dev.off()
+
 ```
 
 View as a dendrogram
@@ -196,32 +207,53 @@ Correlation among importance measures.
 
 ```{r}
 ggpairs(vdat[,-1])
+
+#reoroder levels
+vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between),"Class"])
 ```
 
 Top actors for each statistic
 ```{r}
 mdat<-melt(vdat)
 colnames(mdat)<-c("Class","Metric","Score")
+#order and plot
+dt<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
 
-topactors<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
-bottomactors<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(desc(Score)) 
-dt<-droplevels(rbind(topactors,bottomactors))
+ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric) + labs(x="Z-score")
+ggsave("Figures/OveralMetrics.jpg",dpi=300,height=8,width=10)
+ggsave("Figures/OveralMetrics.svg",dpi=300)
 ```
 
+##Average connectedness and degree and link strength
 ```{r}
-ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric)
+group_by(mdat,Metric) %>% summarize(mean=mean(Score))
+overall.density<-graph.density(g.copy)
+mean(E(g.copy)$weight)
 ```
 
 ##Network stats over time
 ```{r}
-
 #split into a time frame 5 years?
-yearcompare<-split(tocompare,tocompare$Year)
+
+m<-seq(1995,2015,4)
+
+tocompare$Time<-cut(as.numeric(as.character(tocompare$Year)),breaks=m,labels=m[1:length(m)-1])
+
+yearcompare<-split(tocompare,tocompare$Time)
+
+#all over 
+
+#caculate degree distribution
+dd<-melt(sapply(yearcompare,CalcDD))
+ggplot(dd,aes(x=Var1,y=value,col=as.factor(L1))) + geom_line(size=.5) + geom_point(size=4,aes(group=as.factor(L1))) + theme_bw() + xlab("Node Degree") + ggtitle("Degree Distribution") + labs(col="Year") 
 
 yearstats<-lapply(yearcompare,calcN)
+
 head(yearstats)
 yearstats<-melt(yearstats)
-ggplot(yearstats,aes(x=L1,y=value,col=Class)) + geom_point() +geom_line(aes(group=Class)) + facet_wrap(~variable,scales="free",ncol=1) 
+ggplot(yearstats,aes(x=L1,y=value,col=Class)) + geom_point() +geom_line(aes(group=Class)) + facet_wrap(~variable,scales="free",ncol=1)
+
+
 ```
 
 ##Connectance through time
@@ -253,10 +285,16 @@ yeardat$To<-as.character(yeardat$To)
 yeardat$From<-as.character(yeardat$From)
 
 #remove weak connections
-exdat<-group_by(yeardat,To,From) %>% filter(Niche.Overlap>0.02 & !is.na(Niche.Overlap))
+exdat<-group_by(yeardat,To,From) %>% filter(Niche.Overlap>0.05 & !is.na(Niche.Overlap))
 
 exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
-ggplot(exdat,aes(x=Year,y=Niche.Overlap,col=From)) + geom_point() + geom_smooth(aes(group=Combo)) + facet_wrap(~To,scales="free",ncol=4) + theme_bw()
+
+#plot
+ggplot(exdat,aes(x=Year,y=Niche.Overlap,col=From)) + geom_point() + geom_line(aes(group=Combo)) + facet_wrap(~To,scales="free",ncol=3) + theme_bw() + geom_text(data=exdat[exdat$Year==m[length(m)/2],],aes(label=From),size=4) 
+
+ggsave("Figures/LinkTime.svg",dpi=300)
+ggsave("Figures/LinkTime.jpeg",height=7,width=9,dpi=300)
+
 ```
 
 ##trend estimation
@@ -269,12 +307,12 @@ first pass just fit a linear line and determine if its positive or negative
 exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
 
 #year is a number value for the moment
-exdat$Year<-as.numeric(exdat$Year)-2000
+exdat$Year<-as.numeric(exdat$Year)-1995
 
 sdat<-split(exdat,exdat$Combo)
 
 #get rid of combinations with less than ten years of points
-sdat<-sdat[lapply(sdat,nrow) > 10]
+sdat<-sdat[lapply(sdat,nrow) > 2]
 
 #
 # Break up d by state, then fit the specified model to each piece and
@@ -287,8 +325,8 @@ tmod<-rbind_all(lapply(sdat,function(df){
 }))
 
 #extract names into columns
-tmod$To<-str_match(tmod$Combo,"(\\w+.\\w+)-")[,2]
-tmod$From<-str_match(tmod$Combo,"-(\\w+.\\w+)")[,2]
+tmod$To<-str_match(tmod$Combo,"(.*)-")[,2]
+tmod$From<-str_match(tmod$Combo,"-(.*)")[,2]
 ```
 
 Visualize effect over time
@@ -299,11 +337,11 @@ Negative values are significantly decreasing connections
 ```{r}
 tmod$svalue<-scale(tmod$estimate)
 
-ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-```
+ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x="",y="")
+ggsave("InteractionsTime.svg",res=300)
+ggsave("InteractionsTime.jpeg",height=7,width=7) 
 
-That's not very attractive. Have to think how to do be
-Sankey diagram of connection strength change
+```
 
 #D3 Networks
 
@@ -343,10 +381,6 @@ simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html'
 ```{r,cache=F}
 d3Network::d3ForceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",Target = "target", Value = "value", NodeID = "name", Group = "group", opacity = 0.9,file="Net3.html") 
 
-#copy to modify
-networkD3::forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
-             Target = "target", Value = "value", NodeID = "name",
-             Group = "group", opacity = 0.9) %>% networkD3::saveNetwork("Net2.html",selfcontained=F)
 ```
 
 
