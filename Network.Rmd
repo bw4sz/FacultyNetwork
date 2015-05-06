@@ -37,7 +37,7 @@ library(networkD3)
 source("Funtions.R")
 
 #set knitr options
-opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=9,fig.width=14,warning=F,message=F)
+opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warning=F,message=F)
 ```
 
 Read in data. Processed from ByJournal.R
@@ -51,6 +51,9 @@ tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row
 tail(tocompare)
 
 dim(tocompare)
+
+#remove biogeneral i think for now
+tocompare<-tocompare[!tocompare$Class %in% "Biogeneral",]
 ```
 
 Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
@@ -144,7 +147,6 @@ g<-simplify(g)
 # set labels and degrees of vertices
 V(g)$label <- V(g)$name
 V(g)$degree <- degree(g)
-layout1 <- layout.fruchterman.reingold(g)
 
 V(g)$label.color <- rgb(0, 0, .2, .8)
 V(g)$frame.color <- NA
@@ -155,8 +157,6 @@ ramp <- colorRamp(c("blue","red"),alpha=T)
 
 E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
 
-# plot the graph in layout1
-layout1<- layout.fruchterman.reingold(g)
 
 #If you need to delete
 g.copy <- delete.edges(g, which(E(g)$weight<.05))
@@ -164,16 +164,41 @@ g.copy <- delete.edges(g, which(E(g)$weight<.05))
 width<-(E(g.copy)$weight/max(E(g.copy)$weight))*8
 
 #label sizes
-V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*1+.2
-plot(g.copy,vertex.size=6,edge.width=width)
+V(g.copy)$degree <- degree(g.copy)
+V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*.5+.5
+
+#get vertex size
+size<-group_by(tocompare,Class) %>% summarize(Papers=length(unique(DOI)))
+size<-round(as.numeric(table(tocompare$Class))/max(table(tocompare$Class))*5)+2
+
+#scale
+plot.igraph(g.copy,vertex.size=size,edge.width=width)
+
+#try a couple different layouts
+# plot the graph in layout1
+layout1 <- layout.fruchterman.reingold(g.copy,niter=10000,area=vcount(g.copy)^2.3)
+
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
+
+# plot the graph in layout1
+layout2 <- layout.reingold.tilford(g.copy,circular=T)
+
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout2,vertex.color="grey70")
+
+# plot the graph in layout3
+layout3 <- layout.kamada.kawai(g.copy,niter=5000)
+
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout3,vertex.color="grey40")
+
+
 
 #save full  network
-svg(filename = "Figures/Overall_NetworkIgraph.svg")
-plot(g.copy,vertex.size=6,edge.width=width)
+svg(filename = "Figures/Overall_NetworkIgraph.svg",width=10,height=10)
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
 dev.off()
 
-jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=300,height=10,width=8,units="in")
-plot(g.copy,vertex.size=6,edge.width=width)
+jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=300,height=12,width=10,units="in")
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
 dev.off()
 
 ```
@@ -209,7 +234,7 @@ Correlation among importance measures.
 ggpairs(vdat[,-1])
 
 #reoroder levels
-vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between),"Class"])
+vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between,vdat$Degree),"Class"])
 ```
 
 Top actors for each statistic
@@ -220,7 +245,7 @@ colnames(mdat)<-c("Class","Metric","Score")
 dt<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
 
 ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric) + labs(x="Z-score")
-ggsave("Figures/OveralMetrics.jpg",dpi=300,height=8,width=10)
+ggsave("Figures/OveralMetrics.jpg",dpi=300,height=10,width=12)
 ggsave("Figures/OveralMetrics.svg",dpi=300)
 ```
 
@@ -293,7 +318,7 @@ exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
 ggplot(exdat,aes(x=Year,y=Niche.Overlap,col=From)) + geom_point() + geom_line(aes(group=Combo)) + facet_wrap(~To,scales="free",ncol=3) + theme_bw() + geom_text(data=exdat[exdat$Year==m[length(m)/2],],aes(label=From),size=4) 
 
 ggsave("Figures/LinkTime.svg",dpi=300)
-ggsave("Figures/LinkTime.jpeg",height=7,width=9,dpi=300)
+ggsave("Figures/LinkTime.jpeg",height=10,width=14,dpi=300)
 
 ```
 

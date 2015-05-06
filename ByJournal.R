@@ -35,8 +35,12 @@ serial<-j_class$Publication
 s<-gsub(x=serial,replacement="\\+",pattern=" ")
 s<-gsub(x=s,"\\&+","")
 
+#fix malformed seperatly.
+mal<-s[c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
+
 #couple malformed ones
 s<-s[-c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
+
 
 #needs to replace the the's in front of journal title
 a<-which(sapply(s,word,sep="\\+")=="The")
@@ -73,7 +77,7 @@ journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.name
 
 cl<-makeCluster(10,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=350:400,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=601:608,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -89,7 +93,7 @@ stopCluster(cl)
 
 #bind journals, remove no matched
 #correct runs have length of 7
-df<-rbind_all(dat[!lapply(dat,length)==7])
+df<-rbind_all(dat[lapply(dat,length)==7])
 
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
