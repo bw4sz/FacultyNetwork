@@ -79,8 +79,9 @@ tocompare<-droplevels(tocompare[tocompare$Class %in% j_class$Class,])
 #take out malformed lines
 tocompare<-tocompare[which(!str_detect(tocompare$Journal, "SCOPUS")),]
 
+#take year 2015
+tocompare<-tocompare[!tocompare$Year %in% 2015,]
 
-dim(tocompare)
 tocompare<-droplevels(tocompare[which(!str_detect(tocompare$h5.index, "SCOPUS")),])
 dim(tocompare)
 
