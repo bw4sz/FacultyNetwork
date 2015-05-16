@@ -37,7 +37,7 @@ library(networkD3)
 source("Funtions.R")
 
 #set knitr options
-opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warning=F,message=F)
+opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=15,fig.width=14,warning=F,message=F)
 ```
 
 Read in data. Processed from ByJournal.R
@@ -261,7 +261,7 @@ mean(E(g.copy)$weight)
 ```{r}
 #split into a time frame 5 years?
 
-m<-seq(1995,2015,4)
+m<-seq(1995,2014,2)
 
 tocompare$Time<-cut(as.numeric(as.character(tocompare$Year)),breaks=m,labels=m[1:length(m)-1])
 
