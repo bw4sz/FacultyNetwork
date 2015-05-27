@@ -2,7 +2,8 @@
 title: "Academic Betadiversity and Future of Biology Research"
 author: "Ben Weinstein"
 date: "Thursday, April 23, 2015"
-output: html_document
+output: html_document: 
+toc: yes
 ---
 
 
@@ -37,15 +38,16 @@ library(networkD3)
 source("Funtions.R")
 
 #set knitr options
-opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=15,fig.width=14,warning=F,message=F)
+opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warning=F,message=F)
 ```
 
-Read in data. Processed from ByJournal.R
+#Read in data. Processed from ByJournal.R
+
 ```{r}
 #journal class
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
-tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
+tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T,nrows=10000)
 
 #what does it look like:
 tail(tocompare)
@@ -88,7 +90,8 @@ dim(tocompare)
 ```
 
 
-Basic descriptive stats on results
+#Descriptive statistics
+
 ```{r}
 #How many journals
 paste("Number of Journals:",length(unique(tocompare$Journal)))
@@ -104,10 +107,11 @@ print("Most published journals")
 tail(ta)
 ```
 
-How many papers from each discipline over time?
-```{r}
+##How many papers from each discipline over time?
+
+```{r,fig.width=12,fig.height=20}
 class_year<-group_by(tocompare,Class,Year) %>% summarize(Papers=length(unique(DOI)))
-ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=4) + labs(x="Year")
+ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=3) + labs(x="Year")
 ggsave("Figures/Papers_Year.svg",dpi=300)
 ```
 
@@ -131,7 +135,7 @@ High overlap=1
 topics<-1-as.matrix(vegdist(t(siteXspp),"horn"))
 ```
 
-Visualize interactions.
+##Visualize interactions
 
   * Stronger interactions are more red.
   * Weaker interactions are blue.
@@ -172,26 +176,11 @@ V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*.5+.5
 size<-group_by(tocompare,Class) %>% summarize(Papers=length(unique(DOI)))
 size<-round(as.numeric(table(tocompare$Class))/max(table(tocompare$Class))*5)+2
 
-#scale
-plot.igraph(g.copy,vertex.size=size,edge.width=width)
-
-#try a couple different layouts
-# plot the graph in layout1
-layout1 <- layout.fruchterman.reingold(g.copy,niter=10000,area=vcount(g.copy)^2.3)
-
+#plot network
 plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
+```
 
-# plot the graph in layout1
-layout2 <- layout.reingold.tilford(g.copy,circular=T)
-
-plot(g.copy,edge.width=width,vertex.size=size,layout=layout2,vertex.color="grey70")
-
-# plot the graph in layout3
-layout3 <- layout.kamada.kawai(g.copy,niter=5000)
-
-plot(g.copy,edge.width=width,vertex.size=size,layout=layout3,vertex.color="grey40")
-
-
+```{r,results='hide'}
 
 #save full  network
 svg(filename = "Figures/Overall_NetworkIgraph.svg",width=10,height=10)
@@ -204,7 +193,7 @@ dev.off()
 
 ```
 
-View as a dendrogram
+##View as a dendrogram
 
 ```{r}
 wt <- walktrap.community(g, modularity=TRUE)
@@ -229,16 +218,17 @@ eigenV<-evcent(g.copy)$vector
 vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Closeness=closeness_class,Eigen=eigenV)
 ```
 
-Correlation among importance measures.
+##Correlation among measures.
 
-```{r}
+```{r,fig.height=7,fig.width=7}
 ggpairs(vdat[,-1])
 
 #reoroder levels
 vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between,vdat$Degree),"Class"])
 ```
 
-Top actors for each statistic
+##Top actors for each statistic
+
 ```{r}
 mdat<-melt(vdat)
 colnames(mdat)<-c("Class","Metric","Score")
@@ -257,8 +247,8 @@ overall.density<-graph.density(g.copy)
 mean(E(g.copy)$weight)
 ```
 
-##Network stats over time
-```{r}
+#Network stats over time
+```{r,fig.height=6,fig.width=9}
 #split into a time frame 5 years?
 
 m<-seq(1995,2014,2)
@@ -275,10 +265,8 @@ ggplot(dd,aes(x=Var1,y=value,col=as.factor(L1))) + geom_line(size=.5) + geom_poi
 
 yearstats<-lapply(yearcompare,calcN)
 
-head(yearstats)
 yearstats<-melt(yearstats)
 ggplot(yearstats,aes(x=L1,y=value,col=Class)) + geom_point() +geom_line(aes(group=Class)) + facet_wrap(~variable,scales="free",ncol=1)
-
 
 ```
 
@@ -303,6 +291,7 @@ colnames(yeardat)<-c("To","From","Niche.Overlap","Year")
 ```
 
 Remove extremely weak connections 
+
 ```{r,fig.width=13}
 #remove very weak connections
 #work from an example data
@@ -323,11 +312,10 @@ ggsave("Figures/LinkTime.jpeg",height=10,width=14,dpi=300)
 
 ```
 
-##trend estimation
+#Trend estimation
 
 Its not clear to me if i need to use a time-series model. The connection at time A should be independent of connection at time A+1. While they may be related due to the trend - there is no mechanistic connection among publications between years. Its not like a population, where the number of available producers directly influences the offspring in the next year. For the moment, i'm just using a linear model with year as a continious variable. This probably needs to change.
 
-first pass just fit a linear line and determine if its positive or negative
 
 ```{r}
 exdat$Combo<-paste(exdat$To,exdat$From,sep="-")
@@ -355,7 +343,7 @@ tmod$To<-str_match(tmod$Combo,"(.*)-")[,2]
 tmod$From<-str_match(tmod$Combo,"-(.*)")[,2]
 ```
 
-Visualize effect over time
+##Visualize effect over time
 
 Positive values are significantly increasing connections
 Negative values are significantly decreasing connections
@@ -369,9 +357,7 @@ ggsave("Figures/InteractionsTime.jpeg",height=5,width=8)
 
 ```
 
-#D3 Networks
-
-###D3 Visualizations
+#D3 Visualizations
 
 The wonderful D3 package connections!
 
