@@ -2,8 +2,9 @@
 title: "Academic Betadiversity and Future of Biology Research"
 author: "Ben Weinstein"
 date: "Thursday, April 23, 2015"
-output: html_document: 
-toc: yes
+output: 
+html_document: 
+  toc: yes
 ---
 
 
@@ -47,7 +48,7 @@ opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warn
 #journal class
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
-tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T,nrows=10000)
+tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
 
 #what does it look like:
 tail(tocompare)
@@ -177,6 +178,8 @@ size<-group_by(tocompare,Class) %>% summarize(Papers=length(unique(DOI)))
 size<-round(as.numeric(table(tocompare$Class))/max(table(tocompare$Class))*5)+2
 
 #plot network
+layout1 <- layout.fruchterman.reingold(g.copy,niter=10000,area=vcount(g.copy)^2.3)
+
 plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
 ```
 
