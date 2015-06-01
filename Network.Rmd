@@ -210,15 +210,12 @@ We are interested in the centrality, modularity and compartamentalization of the
 
   * Betweenness - number of shortest path that includes node. This tends to find gatekeeps among components.
   * Degree - number of connections for each node
-  * Closeness - relative distance to all actors
-  * Coreness - The centrality of network position.
   * Eigenvector centrality: A node is important if it is connected to many important nodes. A node with a small number of influential contacts will be better than a larger number of mediocre contacts.
 ```{r}
 between_class<-betweenness(g.copy)
 degree_class<-degree(g.copy)
-closeness_class<-closeness(g.copy)
 eigenV<-evcent(g.copy)$vector
-vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Closeness=closeness_class,Eigen=eigenV)
+vdat<-data.frame(Class=names(between_class),Between=between_class,Degree=degree_class,Eigen=eigenV)
 ```
 
 ##Correlation among measures.
@@ -233,14 +230,36 @@ vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between,vdat$Degree),"Class
 ##Top actors for each statistic
 
 ```{r}
+
+size<-data.frame(Class=colnames(siteXspp),Papers=apply(siteXspp,2,sum))
+
+vdat<-merge(size,vdat)
+
+vdat$Insularity<-vdat$Degree/vdat$Papers
 mdat<-melt(vdat)
+
 colnames(mdat)<-c("Class","Metric","Score")
+
 #order and plot
 dt<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
 
-ggplot(dt,aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric) + labs(x="Z-score")
+#sort by betweenness
+ord<-dcast(dt,Class~Metric) %>% select(Class,Between,Degree) %>% arrange(Between,Degree) %>% select(Class)
+
+dt$Class<-factor(dt$Class,levels=ord$Class)
+ggplot(dt[dt$Metric %in% c("Between","Degree","Insularity"),],aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric,scale="free_x") + labs(x="Z-score",y="Biological Field") + theme_bw()
+
 ggsave("Figures/OveralMetrics.jpg",dpi=300,height=10,width=12)
 ggsave("Figures/OveralMetrics.svg",dpi=300)
+```
+
+```{r}
+d<-dcast(dt,Class~Metric)
+#merge with papers
+ds<-merge(d,size)
+
+ggplot(ds,aes(x=Between,y=Degree,label=Class,size=log(Papers))) + geom_point(alpha=.3) +  geom_abline() + theme_bw() + scale_size(range=c(10,15)) + geom_text(size=3,hjust=1,vjust=-1) + xlim(-2,2) + ylim(-2,2)
+
 ```
 
 ##Average connectedness and degree and link strength
