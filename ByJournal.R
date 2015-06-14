@@ -1,5 +1,3 @@
-
-
 #Scopus Database Query By Journal Article
 library(XML)
 library(plyr)
@@ -19,22 +17,29 @@ library(igraph)
 #source function 
 source("Funtions.R")
 
-#Read in Journal Class
-journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
+#open database
+my_db<-src_sqlite(path = "Data/Meta.sqlite3")
 
+
+#Read in Journal Class
+journaldf<-my_db %>% tbl("journal_scopus") %>% collect()
+
+#Read in journals that already run
+j<-my_db %>% tbl("metadata") %>% select(Journal) %>% distinct_() %>% collect()
+
+journaldf<-journaldf[!journaldf$title %in% j$Journal,]
 
 #create a data holder
-#dat<-list()
 
 cl<-makeCluster(10,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=601:608,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=1:length(journaldf),.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=1995:2015)
+  responses<-allyears(query=q,yearrange=1995:2014)
   
     #parse result
   #dat[[x]]<-responses
