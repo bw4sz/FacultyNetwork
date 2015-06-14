@@ -21,7 +21,7 @@ library(foreach)
 source("Funtions.R")
 
 #connect to db
-my_db<-src_sqlite(path = "Data/Meta.sqlite3")
+my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 
 #read in all other URLS
 a<-read.table("Data/GoogleClass.txt",sep="\t")

@@ -18,7 +18,7 @@ library(igraph)
 source("Funtions.R")
 
 #open database
-my_db<-src_sqlite(path = "Data/Meta.sqlite3")
+my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 
 
 #Read in Journal Class
