@@ -20,7 +20,6 @@ source("Funtions.R")
 #open database
 my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 
-
 #Read in Journal Class
 journaldf<-my_db %>% tbl("journal_scopus") %>% collect()
 

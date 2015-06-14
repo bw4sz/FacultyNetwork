@@ -11,6 +11,7 @@ require(dplyr)
 require(stringr)
 library(httr)
 library(chron)
+library(proto)
 library(vegan)
 library(knitr)
 library(bipartite)
@@ -74,16 +75,20 @@ for(x in a){
   s[x]<-torep
 }
 
+s<-gsub(s,pattern="\\++{2}",replacement="\\+")
+s<-gsub(s,pattern="\\:",replacement="")
+
 #Get the journal source ID
 #journaldf<-list()
 
 #search for scopus ID in parallel
-cl<-makeCluster(2,"SOCK")
+cl<-makeCluster(20,"SOCK")
 registerDoSNOW(cl)
 journaldf<-foreach(x=1:length(s),.packages=c("httr","XML")) %dopar% {
     response<-getSourceID(inquery = s[x])
     return(parseSource(response,s[x]))
   }
+stopCluster(cl)
 
 #bind together, after ignoring the blank rows
 journaldf<-journaldf[!sapply(journaldf,length)==1]
@@ -93,6 +98,11 @@ journaldf<-rbind_all(journaldf)
 
 journaldf<-journaldf[!duplicated(journaldf),]
 
+#missing
+missj<-s[!s %in% journaldf$query]
+
+#remove double ++ and rerun
+
 #write to file
 copy_to(my_db,journaldf,"journal_scopus",temporary = F)
-#write.csv(journaldf,"C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv")
+write.csv(journaldf,"C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv")
