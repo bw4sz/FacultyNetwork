@@ -19,56 +19,7 @@ library(igraph)
 #source function 
 source("Funtions.R")
 
-###Journals
-#read in data
-j_class<-read.csv("Class.csv",row.names=1)
-
-#Journal names are characters, are mutable
-j_class$Publication<-as.character(j_class$Publication)
-
-#some known errors that need to be handformatted
-j_class[208,"Publication"]<-"Annual+Review+of+Plant+Biology"
-j_class[209,"Publication"]<-"Plant, Cell and Environment"
-
-#collapse into a string, formatting spaces with + and place a boolean OR in between each
-serial<-j_class$Publication
-s<-gsub(x=serial,replacement="\\+",pattern=" ")
-s<-gsub(x=s,"\\&+","")
-
-#fix malformed seperatly.
-mal<-s[c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
-
-#couple malformed ones
-s<-s[-c(19,767,121,645,595,563,485,371,157,147,133,132,130,131,137,127,144,142,157,134)]
-
-
-#needs to replace the the's in front of journal title
-a<-which(sapply(s,word,sep="\\+")=="The")
-for(x in a){
-  words<-length(strsplit(s[x],"\\+")[[1]])
-  torep<-word(s[x],start=2,end=words,sep="\\+")  
-  s[x]<-torep
-}
-
-#need to start at journal of biological chemistry 2007
-
-# #Get the journal source ID
-# journaldf<-list()
-# 
-# for (x in 1:length(s)){
-#     response<-getSourceID(inquery = s[x])
-#     journaldf[[x]]<-parseSource(response,s[x])      
-# }
-# 
-# #bind together, after ignoring the blank rows
-# journaldf<-rbind_all(journaldf[!sapply(journaldf,length)==1])
-# 
-# journaldf<-journaldf[!duplicated(journaldf),]
-# 
-# #write to file if needed
-# write.csv(journaldf,"C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv")
-
-#if needed read in
+#Read in Journal Class
 journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
 
