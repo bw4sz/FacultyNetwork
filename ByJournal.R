@@ -9,30 +9,41 @@ library(stringr)
 library(chron)
 library(vegan)
 library(knitr)
+library(RSQLite)
 library(bipartite)
 library(doSNOW)
 library(foreach)
 library(igraph)
+library(proto)
 
 #source function 
 source("Funtions.R")
 
 #open database
-my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
+d<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 
 #Read in Journal Class
-journaldf<-my_db %>% tbl("journal_scopus") %>% collect()
+journaldf<-d %>% tbl("journal_scopus") %>% collect()
 
 #Read in journals that already run
-j<-my_db %>% tbl("metadata") %>% select(Journal) %>% distinct_() %>% collect()
+j<-d %>% tbl("JA") %>% select(Journal) %>% distinct_() %>% collect()
 
-journaldf<-journaldf[!journaldf$title %in% j$Journal,]
+comp<-dbGetQuery(d$con,"SELECT DISTINCT Journal 
+            FROM JA,j_class
+           WHERE JA.Journal = j_class.Publication")
+
+comp<-dbGetQuery(d$con,"SELECT DISTINCT Journal 
+            FROM JA")
+
+
+journaldf<-
+  tail(journaldf[!journaldf$title %in% j$Journal,])
 
 #create a data holder
 
 cl<-makeCluster(10,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=1:length(journaldf),.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=1:10,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -40,8 +51,7 @@ dat<-foreach(x=1:length(journaldf),.errorhandling = "pass",.packages=c("httr","X
   #call query
   responses<-allyears(query=q,yearrange=1995:2014)
   
-    #parse result
-  #dat[[x]]<-responses
+  #parse result
   return(responses)
 }
 stopCluster(cl)
