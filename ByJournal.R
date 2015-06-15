@@ -26,30 +26,25 @@ d<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 journaldf<-d %>% tbl("journal_scopus") %>% collect()
 
 #Read in journals that already run
+# comp<-dbGetQuery(d$con,"SELECT DISTINCT Journal
+# FROM JA,j_class
+# WHERE UPPER(JA.Journal) = UPPER(j_class.Publication)")
+
 j<-d %>% tbl("JA") %>% select(Journal) %>% distinct_() %>% collect()
 
-comp<-dbGetQuery(d$con,"SELECT DISTINCT Journal 
-            FROM JA,j_class
-           WHERE JA.Journal = j_class.Publication")
-
-comp<-dbGetQuery(d$con,"SELECT DISTINCT Journal 
-            FROM JA")
-
-
-journaldf<-
-  tail(journaldf[!journaldf$title %in% j$Journal,])
+journaldf<-journaldf[!journaldf$title %in% j$Journal,]
 
 #create a data holder
 
-cl<-makeCluster(10,"SOCK")
+cl<-makeCluster(2,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=1:10,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=5:6,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=1995:2014)
+  responses<-allyears(query=q,yearrange=1995:1996)
   
   #parse result
   return(responses)
@@ -62,21 +57,19 @@ df<-rbind_all(dat[lapply(dat,length)==7])
 
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
-j_class$Publication<-sapply(j_class$Publication,.simpleCap)
-
-#legacy name change
-tocompare<-df
 
 #remerge the "The" in names, sorry bit of ugly code
-levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(tocompare$Journal)[levels(tocompare$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
-
-#append journal classifier
-tocompare<-droplevels(merge(tocompare,j_class,by.x="Journal",by.y="Publication"))
+#levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
 
 #turn unknowns to NA, it was just a place holder
-tocompare[tocompare$Affiliation %in% "Unknown","Affiliation"]<-NA
-tocompare[tocompare$Author %in% "Unknown","Author"]<-NA
+df[df$Affiliation %in% "Unknown","Affiliation"]<-NA
+df[df$Author %in% "Unknown","Author"]<-NA
 
-write.table(tocompare,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,col.names=F,row.names=F,sep=",")
+#write.table(df,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,col.names=F,row.names=F,sep=",")
 
+#write journal and DOI table to the JA table
+towrite<-df %>%  distinct(DOI) %>% select(DOI,Journal)
+db_insert_into(con=d$con,table="JA",values=as.data.frame(towrite))
+
+dbGetQuery(d$con,"SELECT DISTINCT Journal From JA limit 1000")
 save.image("Journal.RData")
