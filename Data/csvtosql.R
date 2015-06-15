@@ -7,7 +7,7 @@ my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3",crea
 tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,
                       header=T,sep=",",fill=T,colClasses = c(rep(NA,4),"NULL",rep(NA,5)))
 
-copy_to(my_db, tocompare, "metadata", temporary = F)
+copy_to(my_db, tocompare, "metadata", temporary = T)
 
 #The first table is going to be Journal and DOI
 my_db %>% tbl("metadata") %>% collect() %>% distinct(DOI) %>% select(DOI,Journal) %>% copy_to(dest=my_db,name="JA",indexes=list("Journal"),temporary=F)

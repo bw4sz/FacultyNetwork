@@ -34,11 +34,14 @@ j<-d %>% tbl("JA") %>% select(Journal) %>% distinct_() %>% collect()
 
 journaldf<-journaldf[!journaldf$title %in% j$Journal,]
 
+#make sure to not to get journal of biological chhmistry, it is badly malformed?
+journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
+
 #create a data holder
 
 cl<-makeCluster(2,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=5:6,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=2:3,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -71,5 +74,7 @@ df[df$Author %in% "Unknown","Author"]<-NA
 towrite<-df %>%  distinct(DOI) %>% select(DOI,Journal)
 db_insert_into(con=d$con,table="JA",values=as.data.frame(towrite))
 
-dbGetQuery(d$con,"SELECT DISTINCT Journal From JA limit 1000")
+towrite<-df %>%  distinct(DOI) %>% select(DOI,Author,Order,Citations,Year)
+db_insert_into(con=d$con,table="Meta",values=as.data.frame(towrite))
+
 save.image("Journal.RData")

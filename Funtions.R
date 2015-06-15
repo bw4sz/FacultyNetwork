@@ -21,7 +21,7 @@ scquery<-function(inquery,year){
   str<-"https://api.elsevier.com/content/search/scopus?&httpAccept=application/xml&view=complete&count=100"
   
   #fields
-  f<-"field=affiliation,prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author,dc:identifier"
+  f<-"field=prism:publicationName,dc:title,dc:creator,citedby-count,prism:coverDate,author,dc:identifier"
   
   #bind
   toget<-paste(str,queryF,sep="&")
@@ -83,22 +83,6 @@ sc_parse<-function(response){
   #if missing
   allauthors[lapply(allauthors,length)==0]<-"Unknown"
   
-  ##Affiliation
-
-  #All affiliations
-  allaff<-list()
-  for (x in 1:lresponse){
-    #make an xpath statement
-    xpath<-paste("//xmlns:entry[",x,"]//xmlns:affiliation/xmlns:affilname",sep="")
-    allaff[[x]]<-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
-  }
-  
-  #fill any null positions with NA
-  allaff[sapply(allaff,length)==0]<-"Unknown"
-  
-  #Name by DOI
-  names(allaff)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
-  
   ##Citation Count
   citation<-as.numeric(xpathSApply(xmltop,"//xmlns:entry//xmlns:citedby-count",xmlValue,namespaces=ns))
   
@@ -114,25 +98,14 @@ sc_parse<-function(response){
   #melt and combine
   allauthors<-melt(allauthors)
   colnames(allauthors)<-c("Author","Order","DOI")
-  allaff<-melt(allaff)
-  
-  #if the journal doesn't provide affiliation, there will be no order
-  if(ncol(allaff)==2){
-    allaff$Order<-NA
-    allaff<-allaff[,c(1,3,2)]
-  }
-  colnames(allaff)<-c("Affiliation","Order","DOI")
-  
-  #merge
-  authdf<-merge(allauthors,allaff,by=c("Order","DOI"))
-  
+    
   #Match journal to classification
   #legacy name change
   artmatch<-artdf
   if(nrow(artmatch)==0){ artmatch<-artdf[paste("The",artdf$Journal) %in% j_class$Publication,] }
 
   #merge into final table
-  dat<-droplevels(merge(authdf,artmatch))
+  dat<-droplevels(merge(allauthors,artmatch))
   return(dat)
 }
 
