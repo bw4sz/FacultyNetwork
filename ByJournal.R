@@ -65,7 +65,6 @@ df$Journal<-sapply(df$Journal,.simpleCap)
 #levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
 
 #turn unknowns to NA, it was just a place holder
-df[df$Affiliation %in% "Unknown","Affiliation"]<-NA
 df[df$Author %in% "Unknown","Author"]<-NA
 
 #write.table(df,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,col.names=F,row.names=F,sep=",")
