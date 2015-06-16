@@ -34,3 +34,24 @@ b<-dbGetQuery(d$con,sq)
 
 
 sq<-" DELETE FROM JA WHERE Journal in (SELECT JOURNAL From JA WHERE DOI NOT LIKE '%SCOPUS%')"
+
+sq<-"SELECT Journal, COUNT(*) as p FROM JA GROUP BY Journal ORDER BY p DESC"
+
+b<-dbGetQuery(d$con,sq)
+
+sq<-"SELECT DISTINCT Journal, COUNT(*) FROM JA GROUP BY Journal"
+
+b<-dbGetQuery(d$con,sq)
+
+sq<-"SELECT title FROM journal_scopus limit 200"
+
+a<-dbGetQuery(d$con,sq)
+
+b[which(b$Journal %in% a$title),]
+
+which(a$title %in% b$Journal)
+head(b)
+
+which(a$title %in% b$Journal)
+
+

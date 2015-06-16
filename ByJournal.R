@@ -37,11 +37,23 @@ journaldf<-journaldf[!journaldf$title %in% j$Journal,]
 #make sure to not to get journal of biological chhmistry, it is badly malformed?
 journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
+#write a test query that you know works to ensure you have space
+tq<-scquery("AUK","2014")
 #create a data holder
+
+#set placement of journal
+jp<-read.table("Data/JournalSection.txt")$x
+
+#update new
+#how many journals to run?
+runs<-50
+jp<-(max(jp)+1):(max(jp)+runs)
+
+if (tq$status_code==200){
 
 cl<-makeCluster(20,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=1:50,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=jp,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
@@ -75,5 +87,7 @@ db_insert_into(con=d$con,table="JA",values=as.data.frame(towrite))
 
 towrite<-df %>%  distinct(DOI) %>% select(DOI,Author,Order,Citations,Year)
 db_insert_into(con=d$con,table="Meta",values=as.data.frame(towrite))
+write.table(jp,"Data/JournalSection.txt")
+}
 
 save.image("Journal.RData")
