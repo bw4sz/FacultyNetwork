@@ -5,7 +5,7 @@ library(stringr)
 my_db<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3",create=T)
 
 tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,
-                      header=T,sep=",",fill=T,colClasses = c(rep(NA,4),"NULL",rep(NA,5)))
+                      header=T,sep=",",fill=T)
 
 copy_to(my_db, tocompare, "metadata", temporary = T)
 
@@ -17,3 +17,20 @@ my_db %>% tbl("metadata") %>% collect() %>% select(DOI,Order,Author,Citations,Ye
 
 db_drop_table(my_db$con,"metadata")
 db_drop_table(my_db$con,"aff")
+
+#drop any journal that mentions biological chemistry
+
+dbGetQuery(d$con, "DELETE FROM JA WHERE Journal LIKE '%Biological Chemistry%'")
+dbGetQuery(d$con, "DELETE FROM Meta WHERE Year LIKE '%Biological Chemistry%'")
+
+b<-dbGetQuery(d$con,"SELECT Journal, COUNT(*) as Publications FROM JA GROUP BY Journal")
+
+y<-1995:2015
+sq<-"SELECT Year FROM (SELECT Year, COUNT (*) AS p FROM Meta GROUP BY Year HAVING p > 0)"
+b<-dbGetQuery(d$con,sq)
+
+sq<-"DELETE FROM Meta WHERE Year in (SELECT Year FROM (SELECT Year, COUNT (*) AS p FROM Meta GROUP BY Year HAVING p < 20))"
+b<-dbGetQuery(d$con,sq)
+
+
+sq<-" DELETE FROM JA WHERE Journal in (SELECT JOURNAL From JA WHERE DOI NOT LIKE '%SCOPUS%')"

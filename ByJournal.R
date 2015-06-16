@@ -39,15 +39,15 @@ journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
 #create a data holder
 
-cl<-makeCluster(2,"SOCK")
+cl<-makeCluster(20,"SOCK")
 registerDoSNOW(cl)
-dat<-foreach(x=2:3,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+dat<-foreach(x=1:50,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
   print(x)
   #get articles from a journal and parse it
   q<-paste("source-id(",journaldf$ID[x],")",sep="")
   
   #call query
-  responses<-allyears(query=q,yearrange=1995:1996)
+  responses<-allyears(query=q,yearrange=1995:2014)
   
   #parse result
   return(responses)
@@ -55,8 +55,8 @@ dat<-foreach(x=2:3,.errorhandling = "pass",.packages=c("httr","XML","reshape2","
 stopCluster(cl)
 
 #bind journals, remove no matched
-#correct runs have length of 7
-df<-rbind_all(dat[lapply(dat,length)==7])
+#correct runs have length of 6
+df<-rbind_all(dat[lapply(dat,length)==6])
 
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
