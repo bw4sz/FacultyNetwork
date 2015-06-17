@@ -35,7 +35,7 @@ b<-dbGetQuery(d$con,sq)
 
 sq<-" DELETE FROM JA WHERE Journal in (SELECT JOURNAL From JA WHERE DOI NOT LIKE '%SCOPUS%')"
 
-sq<-"SELECT Journal, COUNT(*) as p FROM JA GROUP BY Journal ORDER BY p DESC"
+sq<-"SELECT COUNT(*) as p FROM JA"
 
 b<-dbGetQuery(d$con,sq)
 

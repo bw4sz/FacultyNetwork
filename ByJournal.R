@@ -39,6 +39,7 @@ journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
 #write a test query that you know works to ensure you have space
 tq<-scquery("AUK","2014")
+
 #create a data holder
 
 #set placement of journal
@@ -46,7 +47,8 @@ jp<-read.table("Data/JournalSection.txt")$x
 
 #update new
 #how many journals to run?
-runs<-50
+#if last run ended in exceed query, run 0!
+runs<-0
 jp<-(max(jp)+1):(max(jp)+runs)
 
 if (tq$status_code==200){
@@ -69,12 +71,21 @@ stopCluster(cl)
 #bind journals, remove no matched
 #correct runs have length of 6
 df<-rbind_all(dat[lapply(dat,length)==6])
-
+  
 #Standardize capitalization
 df$Journal<-sapply(df$Journal,.simpleCap)
 
 #remerge the "The" in names, sorry bit of ugly code
 #levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")]<-paste("The",levels(df$Journal)[levels(df$Journal) %in% gsub(x=s[a],pattern="\\+",replacement=" ")])
+
+#if we ran out of calls, figure out where, using a test query
+tq<-scquery("AUK","2014")
+
+if(!tq$status_code==200){
+    sapply(dat,function(x){
+    max(as.numeric(as.character(x$Year)))
+  })
+}
 
 #turn unknowns to NA, it was just a place holder
 df[df$Author %in% "Unknown","Author"]<-NA
@@ -87,6 +98,8 @@ db_insert_into(con=d$con,table="JA",values=as.data.frame(towrite))
 
 towrite<-df %>%  distinct(DOI) %>% select(DOI,Author,Order,Citations,Year)
 db_insert_into(con=d$con,table="Meta",values=as.data.frame(towrite))
+
+
 write.table(jp,"Data/JournalSection.txt")
 }
 

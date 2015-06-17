@@ -45,10 +45,23 @@ opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warn
 #Read in data. Processed from ByJournal.R
 
 ```{r}
-#journal class
-journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
+#open database
+d<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 
-tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
+#what does the data look like?
+dbGetQuery(d$con, "SELECT * FROM JA limit 10")
+dbGetQuery(d$con, "SELECT * FROM Meta limit 10")
+
+#we want to remove authors that have few publications, atleast 4
+
+sq<-"SELECT Author, Count(*) as p FROM META GROUP BY Author HAVING p > 4"
+auth<-dbGetQuery(d$con, sq)
+
+d %>% tbl("Meta") %>% filter(Author %in% auth$Author) %>% dim()
+#journal class
+#journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
+
+#tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
 
 #what does it look like:
 tail(tocompare)
@@ -56,7 +69,7 @@ tail(tocompare)
 dim(tocompare)
 
 #remove biogeneral i think for now
-tocompare<-tocompare[!tocompare$Class %in% "Biogeneral",]
+#tocompare<-tocompare[!tocompare$Class %in% "Biogeneral",]
 ```
 
 Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
