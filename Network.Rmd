@@ -52,12 +52,20 @@ d<-src_sqlite(path = "C:/Users/Ben/Dropbox/FacultyNetwork/Meta.sqlite3")
 dbGetQuery(d$con, "SELECT * FROM JA limit 10")
 dbGetQuery(d$con, "SELECT * FROM Meta limit 10")
 
+#Order seems to be an issue, lets create a table that just merges the two column and keeps the larger number.
+
+dbGetQuery(d$con, "CREATE TABLE m 
+           AS SELECT DOI, Citations, Year, MAX (`Order`,Author) as AuID FROM Meta")
+
 #we want to remove authors that have few publications, atleast 4
 
-sq<-"SELECT Author, Count(*) as p FROM META GROUP BY Author HAVING p > 4"
+sq<-"SELECT Author, Count(*) as p FROM Meta GROUP BY Author HAVING p > 4"
 auth<-dbGetQuery(d$con, sq)
 
-d %>% tbl("Meta") %>% filter(Author %in% auth$Author) %>% dim()
+tocompare<-d %>% tbl("Meta") %>% filter(Author %in% auth$Author) %>% distinct() %>% collect()
+
+#seems to be an error that if there is just 1 author, the unique ID gets screwed up.
+
 #journal class
 #journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
 
