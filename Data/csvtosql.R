@@ -45,6 +45,9 @@ b<-dbGetQuery(d$con,sq)
 
 sq<-"SELECT title FROM journal_scopus limit 200"
 
+dbGetQuery(d$con,"SELECT * From m WHERE DOI=='SCOPUS_ID:0034126157'")
+
+
 a<-dbGetQuery(d$con,sq)
 
 b[which(b$Journal %in% a$title),]

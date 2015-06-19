@@ -54,27 +54,20 @@ dbGetQuery(d$con, "SELECT * FROM Meta limit 10")
 
 #Order seems to be an issue, lets create a table that just merges the two column and keeps the larger number.
 
-dbGetQuery(d$con, "CREATE TABLE m 
-           AS SELECT DOI, Citations, Year, MAX (`Order`,Author) as AuID FROM Meta")
+dbGetQuery(d$con, "CREATE TEMP TABLE m AS SELECT * FROM Meta")
+
+dbGetQuery(d$con,"UPDATE m SET Author = 'm.Order' WHERE AUTHOR < 100 ")
 
 #we want to remove authors that have few publications, atleast 4
-
-sq<-"SELECT Author, Count(*) as p FROM Meta GROUP BY Author HAVING p > 4"
+sq<-"SELECT Author, Count(*) as p FROM m GROUP BY Author HAVING p > 4"
 auth<-dbGetQuery(d$con, sq)
 
-tocompare<-d %>% tbl("Meta") %>% filter(Author %in% auth$Author) %>% distinct() %>% collect()
+tocompare<-d %>% tbl("m") %>% filter(Author %in% auth$Author) %>% distinct() %>% collect()
 
-#seems to be an error that if there is just 1 author, the unique ID gets screwed up.
-
-#journal class
-#journaldf<-read.csv("C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv",row.names=1)
-
-#tocompare<-read.table("C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",row.names=NULL,header=T,sep=",",fill=T)
+dim(tocompare)
 
 #what does it look like:
 tail(tocompare)
-
-dim(tocompare)
 
 #remove biogeneral i think for now
 #tocompare<-tocompare[!tocompare$Class %in% "Biogeneral",]
@@ -83,32 +76,18 @@ dim(tocompare)
 Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
 
 ```{r}
-#filter authors
-#distribution of publication
-keep<-names(which(table(tocompare$Author)>3))
-tocompare<-droplevels(tocompare[tocompare$Author %in% keep,])
-
-#remove duplicates.
-tocompare<-tocompare[!duplicated(tocompare),]
-
-#in case the column names in there 
-tocompare<-droplevels(tocompare[!tocompare$Journal %in% "DOI",])
-dim(tocompare)
-
-j_class<-read.csv("Class.csv",row.names=1)
+j_class<-dbGetQuery(d$con,"SELECT j_class.Discipline,J_class.Class,J_class.Publication FROM j_class,JA WHERE 'j_class.Publication' = 'JA.Journal'")
 
 #in case there are malformed classes
 tocompare<-droplevels(tocompare[tocompare$Class %in% j_class$Class,])
 
-#take out malformed lines
-tocompare<-tocompare[which(!str_detect(tocompare$Journal, "SCOPUS")),]
-
 #take year 2015
 tocompare<-tocompare[!tocompare$Year %in% 2015,]
 
-tocompare<-droplevels(tocompare[which(!str_detect(tocompare$h5.index, "SCOPUS")),])
 dim(tocompare)
 
+#merge with journal - this may need to sql eventually
+merge(tocompare,j_class)
 ```
 
 
