@@ -12,7 +12,6 @@ html_document:
 #Scopus Database Query By Journal Article
 library(XML)
 library(proto)
-library(magrittr)
 library(broom)
 library(plyr)
 library(dplyr)
@@ -55,7 +54,7 @@ dbGetQuery(d$con, "SELECT * FROM Meta limit 10")
 
 #Order seems to be an issue, lets create a table that just merges the two column and keeps the larger number.
 
-dbGetQuery(d$con, "CREATE TEMP TABLE m AS SELECT * FROM Meta")
+dbGetQuery(d$con, "CREATE TEMP TABLE m AS SELECT * FROM Meta WHERE NOT Year = 2015")
 
 dbGetQuery(d$con,"UPDATE m SET Author = `Order` WHERE AUTHOR < 100 ")
 
@@ -74,6 +73,8 @@ jscopus<-dbGetQuery(d$con,"SELECT * FROM journal_scopus")
 
 JA<-dbGetQuery(d$con,"Select * FROM JA")
 
+m<-dbGetQuery(d$con,"SELECT * FROM m")
+
 # we need metadata for each of the classes, some of the spelling conflicts.
 head(jscopus)
 head(j_class)
@@ -85,28 +86,31 @@ jscopus$Source[!jscopus$Source %in% j_class$Source]<-paste("THE",jscopus$Source[
 
 jc<-merge(j_class,jscopus)
 
-#send it back to SQL land
+#remove duplicates
+jc<-jc[!duplicated(jc[,"Source" ]),]
+
 copy_to(d,jc,"jc",temporary = T)
-
-dbGetQuery(d$con,"SELECT Author, Year, Discipline, Class, Journal, Count(*) as P From m Inner JOIN JA ON m.DOI=JA.DOI INNER JOIN jc ON Journal = jc.Source  GROUP BY Author, Discipline limit 10")
-
-#in case there are malformed classes
-tocompare<-dim(droplevels(tocompare[tocompare$Class %in% j_class$Class,]))
-
-#take year 2015
-tocompare<-tocompare[!tocompare$Year %in% 2015,]
-
-dim(tocompare)
-
-#merge with journal - this may need to sql eventually
-merge(tocompare,j_class)
 ```
 
 
-#Descriptive statistics
+```{r}
+#This takes forever but it works...
+#siteXspp<-dbGetQuery(d$con,"SELECT Author, SOURCE, JA.DOI, title, Discipline, Class, Year FROM JA JOIN jc ON UPPER(jc.title) = UPPER(Journal) Join m ON m.DOI=JA.DOI")
+```
 
 ```{r}
-#How many journals
+S<-merge(m,JA,by="DOI")
+S<-S[,colnames(S) %in% c("DOI","Author","Year","Journal")]
+S$jname<-toupper(S$Journal)
+jc$jname<-toupper(jc$title)
+
+system.time(tocompare<-merge(S,jc[,colnames(jc) %in% c("title","jname","Source","Discipline","Class")],by.x="jname"))
+```
+
+#Descriptive statistics
+How many journals
+
+```{r}
 paste("Number of Journals:",length(unique(tocompare$Journal)))
 
 #How many authors
@@ -122,9 +126,11 @@ tail(ta)
 
 ##How many papers from each discipline over time?
 
-```{r,fig.width=12,fig.height=20}
-class_year<-group_by(tocompare,Class,Year) %>% summarize(Papers=length(unique(DOI)))
-ggplot(class_year,aes(x=as.factor(Year),y=Papers,col=Class,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=2) + labs(x="Year")
+```{r,fig.width=12,fig.height=25}
+class_year<-melt(table(tocompare$Class,tocompare$Year))
+colnames(class_year)<-c("Class","Year","Papers")
+
+ggplot(class_year,aes(x=as.factor(Year),y=Papers,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=2) + labs(x="Year")
 ggsave("Figures/Papers_Year.svg",dpi=300)
 ```
 
@@ -169,11 +175,10 @@ V(g)$degree <- degree(g)
 V(g)$label.color <- rgb(0, 0, .2, .8)
 V(g)$frame.color <- NA
 egam=E(g)$weight/max(E(g)$weight)
-E(g)$color<-rgb(0,1,0,alpha=E(g)$weight/max(E(g)$weight),maxColorValue=1)
 
-ramp <- colorRamp(c("blue","red"),alpha=T)
+ramp <- colorRamp(c("gray90","black"),alpha=T)
 
-E(g)$color = apply(ramp(E(g)$weight), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
+E(g)$color = apply(ramp(E(g)$weight/max(E(g)$weight)), 1, function(x) rgb(x[1]/255,x[2]/255,x[3]/255,alpha=T) )
 
 
 #If you need to delete
@@ -193,13 +198,23 @@ size<-round(as.numeric(table(tocompare$Class))/max(table(tocompare$Class))*5)+2
 layout1 <- layout.fruchterman.reingold(g.copy,niter=10000,area=vcount(g.copy)^2.3)
 
 plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
+
+#try coloring nodes by discipline
+clookup<-jc %>% group_by(Class,Discipline) %>% distinct() %>% select(Class,Discipline)
+
+#randomly assign class for duplicate
+clookup<-clookup[!duplicated(clookup$Class),]
+V(g.copy)$color<-as.numeric(as.factor(merge(data.frame(Class=V(g.copy)$label),clookup)$Discipline))
+
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout1)
+
 ```
 
 ```{r,results='hide'}
 
 #save full  network
 svg(filename = "Figures/Overall_NetworkIgraph.svg",width=10,height=10)
-plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
+plot(g.copy,edge.width=width,vertex.size=size,layout=layout1)
 dev.off()
 
 jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=300,height=12,width=10,units="in")
