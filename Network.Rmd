@@ -88,7 +88,7 @@ jc<-merge(j_class,jscopus)
 #send it back to SQL land
 copy_to(d,jc,"jc",temporary = T)
 
-dbGetQuery(d$con,"SELECT Author,Journal, Count(*) as P FROM m,JA GROUP BY Author limit 10")
+dbGetQuery(d$con,"SELECT Author, Year, Discipline, Class, Journal, Count(*) as P From m Inner JOIN JA ON m.DOI=JA.DOI INNER JOIN jc ON Journal = jc.Source  GROUP BY Author, Discipline limit 10")
 
 #in case there are malformed classes
 tocompare<-dim(droplevels(tocompare[tocompare$Class %in% j_class$Class,]))
