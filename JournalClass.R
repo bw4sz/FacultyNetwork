@@ -101,8 +101,6 @@ journaldf<-journaldf[!duplicated(journaldf),]
 #missing
 missj<-s[!s %in% journaldf$query]
 
-#remove double ++ and rerun
-
 #write to file
 copy_to(my_db,journaldf,"journal_scopus",temporary = F)
 write.csv(journaldf,"C:/Users/Ben/Dropbox/FacultyNetwork/JournalID.csv")

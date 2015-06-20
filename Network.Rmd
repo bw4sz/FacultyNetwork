@@ -22,6 +22,7 @@ library(httr)
 library(stringr)
 library(chron)
 library(vegan)
+library(RSQLite)
 library(knitr)
 library(bipartite)
 library(sna)
@@ -56,30 +57,41 @@ dbGetQuery(d$con, "SELECT * FROM Meta limit 10")
 
 dbGetQuery(d$con, "CREATE TEMP TABLE m AS SELECT * FROM Meta")
 
-dbGetQuery(d$con,"UPDATE m SET Author = 'm.Order' WHERE AUTHOR < 100 ")
+dbGetQuery(d$con,"UPDATE m SET Author = `Order` WHERE AUTHOR < 100 ")
 
 #we want to remove authors that have few publications, atleast 4
-sq<-"SELECT Author, Count(*) as p FROM m GROUP BY Author HAVING p > 4"
+sq<-"DELETE FROM m WHERE Author in (SELECT Author FROM (SELECT Author, Count(*) as p FROM m GROUP BY Author HAVING p < 4))"
 auth<-dbGetQuery(d$con, sq)
-
-tocompare<-d %>% tbl("m") %>% filter(Author %in% auth$Author) %>% distinct() %>% collect()
-
-dim(tocompare)
-
-#what does it look like:
-tail(tocompare)
-
-#remove biogeneral i think for now
-#tocompare<-tocompare[!tocompare$Class %in% "Biogeneral",]
 ```
 
 Basic data cleaning. We only want records from active authors. Atleast 5 publications in the entire record.
 
 ```{r}
-j_class<-dbGetQuery(d$con,"SELECT j_class.Discipline,J_class.Class,J_class.Publication FROM j_class,JA WHERE 'j_class.Publication' = 'JA.Journal'")
+#i want to do this in sql, but right now i'm just better in R
+j_class<-dbGetQuery(d$con,"SELECT * From j_class")
+
+jscopus<-dbGetQuery(d$con,"SELECT * FROM journal_scopus")
+
+JA<-dbGetQuery(d$con,"Select * FROM JA")
+
+# we need metadata for each of the classes, some of the spelling conflicts.
+head(jscopus)
+head(j_class)
+j_class$Source<-toupper(j_class$Publication)
+jscopus$Source<-toupper(jscopus$title)
+
+#which need the "the added back"
+jscopus$Source[!jscopus$Source %in% j_class$Source]<-paste("THE",jscopus$Source[!jscopus$Source %in% j_class$Source])
+
+jc<-merge(j_class,jscopus)
+
+#send it back to SQL land
+copy_to(d,jc,"jc",temporary = T)
+
+dbGetQuery(d$con,"SELECT Author,Journal, Count(*) as P FROM m,JA GROUP BY Author limit 10")
 
 #in case there are malformed classes
-tocompare<-droplevels(tocompare[tocompare$Class %in% j_class$Class,])
+tocompare<-dim(droplevels(tocompare[tocompare$Class %in% j_class$Class,]))
 
 #take year 2015
 tocompare<-tocompare[!tocompare$Year %in% 2015,]

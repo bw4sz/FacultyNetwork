@@ -413,4 +413,4 @@ CalcDD<-function(x){
   return(as.matrix(dd))
   }
   
-shead<-function(tab){dbGetQuery(d$con,paste("SELECT * FROM",tab,"limit 10")}
+shead<-function(tab){dbGetQuery(d$con,paste("SELECT * FROM",tab,"limit 10"))}
