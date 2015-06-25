@@ -75,6 +75,10 @@ JA<-dbGetQuery(d$con,"Select * FROM JA")
 
 m<-dbGetQuery(d$con,"SELECT * FROM m")
 
+#beware of error ducplicates
+m<-m[!duplicated(m),]
+JA<-JA[!duplicated(JA),]
+
 # we need metadata for each of the classes, some of the spelling conflicts.
 head(jscopus)
 head(j_class)
@@ -126,7 +130,7 @@ tail(ta)
 
 ##How many papers from each discipline over time?
 
-```{r,fig.width=12,fig.height=25}
+```{r,fig.width=12,fig.height=35}
 class_year<-melt(table(tocompare$Class,tocompare$Year))
 colnames(class_year)<-c("Class","Year","Papers")
 
@@ -191,7 +195,6 @@ V(g.copy)$degree <- degree(g.copy)
 V(g.copy)$label.cex <- V(g.copy)$degree / max(V(g.copy)$degree)*.5+.5
 
 #get vertex size
-size<-group_by(tocompare,Class) %>% summarize(Papers=length(unique(DOI)))
 size<-round(as.numeric(table(tocompare$Class))/max(table(tocompare$Class))*5)+2
 
 #plot network
@@ -217,10 +220,42 @@ svg(filename = "Figures/Overall_NetworkIgraph.svg",width=10,height=10)
 plot(g.copy,edge.width=width,vertex.size=size,layout=layout1)
 dev.off()
 
-jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=300,height=12,width=10,units="in")
+jpeg(filename = "Figures/Overall_NetworkIgraph.jpeg",res=600,height=12,width=10,units="in")
 plot(g.copy,edge.width=width,vertex.size=size,layout=layout1,vertex.color="grey40")
 dev.off()
 
+```
+
+##View each discipline seperately
+
+```{r}
+disc<-unique(clookup$Discipline)
+
+for(x in 1:length(disc[x])){
+  disc[x]
+  classes<-clookup[clookup$Discipline %in% disc[x],]$Class
+  disc.copy<-g.copy
+  disc.copy<-delete.vertices(disc.copy,which(!V(g.copy)$label %in% classes))
+
+  #remerge metrics
+  #width
+width<-(E(disc.copy)$weight/max(E(disc.copy)$weight))*8
+
+#label sizes
+V(disc.copy)$degree <- degree(disc.copy)
+V(disc.copy)$label.cex <- V(disc.copy)$degree / max(V(disc.copy)$degree)*.5+.5
+
+#get vertex size
+subsize<-tocompare[tocompare$Class %in% V(disc.copy)$label,]
+size<-round(as.numeric(table(subsize$Class))/max(table(subsize$Class))*5)+2
+
+#create layout
+layout1 <- layout.fruchterman.reingold(disc.copy,niter=10000,area=vcount(g.copy)^2.3)
+
+plot(disc.copy,edge.width=width,layout=layout1,vertex.size=size)
+  
+  
+}
 ```
 
 ##View as a dendrogram
@@ -256,16 +291,19 @@ vdat$Class<-factor(vdat$Class,levels=vdat[order(vdat$Between,vdat$Degree),"Class
 
 ##Top actors for each statistic
 
-```{r}
+```{r,fig.height=20}
 
 size<-data.frame(Class=colnames(siteXspp),Papers=apply(siteXspp,2,sum))
+
+#merge with disciplines
+size<-merge(size,clookup)
 
 vdat<-merge(size,vdat)
 
 vdat$Insularity<-vdat$Degree/vdat$Papers
 mdat<-melt(vdat)
 
-colnames(mdat)<-c("Class","Metric","Score")
+colnames(mdat)<-c("Class","Discipline","Metric","Score")
 
 #order and plot
 dt<-group_by(mdat,Metric) %>% mutate(Svalue=as.numeric(scale(Score))) %>% group_by(Metric,Class) %>% arrange(Score)
@@ -276,16 +314,20 @@ ord<-dcast(dt,Class~Metric) %>% select(Class,Between,Degree) %>% arrange(Between
 dt$Class<-factor(dt$Class,levels=ord$Class)
 ggplot(dt[dt$Metric %in% c("Between","Degree","Insularity"),],aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(.~Metric,scale="free_x") + labs(x="Z-score",y="Biological Field") + theme_bw()
 
+#try by discipline -
+
+ggplot(dt[dt$Metric %in% c("Between","Degree","Insularity"),],aes(y=Class,x=Svalue)) + geom_bar_horz(stat="identity",position="identity") + facet_grid(Discipline~Metric,scale="free") + labs(x="Z-score",y="Biological Field") + theme_bw()
+
 ggsave("Figures/OveralMetrics.jpg",dpi=300,height=10,width=12)
 ggsave("Figures/OveralMetrics.svg",dpi=300)
 ```
 
 ```{r}
-d<-dcast(dt,Class~Metric)
+d<-dcast(dt,Discipline + Class~Metric)
 #merge with papers
-ds<-merge(d,size)
+ds<-merge(d,size,by=c("Class","Discipline"))
 
-ggplot(ds,aes(x=Between,y=Degree,label=Class,size=log(Papers))) + geom_point(alpha=.3) +  geom_abline() + theme_bw() + scale_size(range=c(10,15)) + geom_text(size=3,hjust=1,vjust=-1) + xlim(-2,2) + ylim(-2,2)
+ggplot(ds,aes(x=Between,y=Degree,col=Discipline,label=Class,size=log(Papers.y))) + geom_point(alpha=.3) + geom_abline() + geom_text(data=ds[ds$Between > 0 | ds$Degree > 0,],size=2.5,col="black") + theme_bw() + scale_size(range=c(2,13)) +labs(size="Publications") + coord_fixed()
 
 ```
 
@@ -341,7 +383,7 @@ colnames(yeardat)<-c("To","From","Niche.Overlap","Year")
 
 Remove extremely weak connections 
 
-```{r,fig.width=13}
+```{r,fig.width=15,fig.height=30}
 #remove very weak connections
 #work from an example data
 #make into characters
@@ -397,7 +439,7 @@ tmod$From<-str_match(tmod$Combo,"-(.*)")[,2]
 Positive values are significantly increasing connections
 Negative values are significantly decreasing connections
 
-```{r}
+```{r,fig.height=10}
 tmod$svalue<-scale(tmod$estimate)
 
 ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x="",y="")
@@ -434,12 +476,14 @@ simpleNetwork(MisLinks,fontSize = 15)
 ```
 
 ```{r,cache=F}
-simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Figures/Net1.html',selfcontained=F)
+simpleNetwork(MisLinks,height=500,width=700)  %>% saveNetwork(file = 'Net1.html',selfcontained=F)
 ```
 
 ##Force based network
 
 ```{r,cache=F}
+networkD3::forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",Target = "target", Value = "value", NodeID = "name", Group = "group", opacity = 0.9) 
+
 d3Network::d3ForceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",Target = "target", Value = "value", NodeID = "name", Group = "group", opacity = 0.9,file="Figures/Net3.html") 
 
 ```

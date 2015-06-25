@@ -77,7 +77,7 @@ sc_parse<-function(response){
     xpath<-paste("//xmlns:entry[",x,"]//xmlns:author/xmlns:authid",sep="")
     allauthors[[x]]<-as.list(xpathSApply(xmltop,xpath,xmlValue,namespaces=ns))
   }
-  
+
   names(allauthors)<-xpathSApply(xmltop,"//xmlns:entry//dc:identifier",xmlValue,namespaces=ns)
   
   #if missing
