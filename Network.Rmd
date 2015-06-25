@@ -231,31 +231,56 @@ dev.off()
 ```{r}
 disc<-unique(clookup$Discipline)
 
-for(x in 1:length(disc[x])){
-  disc[x]
+#output of the network level statistics
+out<-list()
+
+
+for(x in 1:length(disc)){
+  print(disc[x])
   classes<-clookup[clookup$Discipline %in% disc[x],]$Class
   disc.copy<-g.copy
   disc.copy<-delete.vertices(disc.copy,which(!V(g.copy)$label %in% classes))
 
   #remerge metrics
   #width
-width<-(E(disc.copy)$weight/max(E(disc.copy)$weight))*8
+  width<-(E(disc.copy)$weight/max(E(disc.copy)$weight))*8
 
-#label sizes
-V(disc.copy)$degree <- degree(disc.copy)
-V(disc.copy)$label.cex <- V(disc.copy)$degree / max(V(disc.copy)$degree)*.5+.5
+  #label sizes
+  V(disc.copy)$degree <- degree(disc.copy)
+  V(disc.copy)$label.cex <- V(disc.copy)$degree / max(V(disc.copy)$degree)*.5+.5
 
-#get vertex size
-subsize<-tocompare[tocompare$Class %in% V(disc.copy)$label,]
-size<-round(as.numeric(table(subsize$Class))/max(table(subsize$Class))*5)+2
+  #get vertex size
+  subsize<-tocompare[tocompare$Class %in% V(disc.copy)$label,]
+  size<-round(as.numeric(table(subsize$Class))/max(table(subsize$Class))*5)+2
 
-#create layout
-layout1 <- layout.fruchterman.reingold(disc.copy,niter=10000,area=vcount(g.copy)^2.3)
+  #create layout
+  layout1 <- layout.fruchterman.reingold(disc.copy,niter=10000,area=vcount(g.copy)^2.3)
 
-plot(disc.copy,edge.width=width,layout=layout1,vertex.size=size)
+    plot(disc.copy,edge.width=width,layout=layout1,vertex.size=size)
+
+  #save to file
+  filnam<-paste("Figures/",disc[x],"network.svg",sep="")
+  svg(filnam,height=10,width=10)
+  plot(disc.copy,edge.width=width,layout=layout1,vertex.size=size)
+  dev.off()
   
-  
+  #network level statistics
+density<-graph.density(disc.copy)
+mean.strength<-mean(graph.strength(disc.copy))
+mean.closeness<-mean(closeness(disc.copy))
+connectedness<-connectedness(as.matrix(get.adjacency(disc.copy)))
+out[[x]]<-data.frame(Discipline=disc[x],density,mean.strength,mean.closeness,connectedness)
 }
+
+out<-rbind.fill(out)
+outm<-melt(out,id.var="Discipline")
+
+#fill in number of articles
+size<-melt(table(tocompare$Discipline))
+colnames(size)<-c("Discipline","Articles")
+outm<-merge(outm,size)
+ggplot(outm,aes(x=Discipline,y=value,fill=Articles)) + geom_bar(stat="identity") + facet_wrap(~variable,nrow=1) + theme_bw() + scale_fill_continuous(low="blue",high="red")
+ggsave("Figures/DisciplineMetrics.jpeg",dpi=400,height=4,width=7)
 ```
 
 ##View as a dendrogram
