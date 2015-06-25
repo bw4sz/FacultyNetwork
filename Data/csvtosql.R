@@ -58,3 +58,19 @@ head(b)
 which(a$title %in% b$Journal)
 
 
+d %>% tbl("JA") %>% filter(Journal %in% journaldf$title[jp]) %>% head()
+
+shead("meta")
+
+copy_to(d,"t",df=as.data.frame(journaldf[jp,]),temporary=T)
+
+dbGetQuery(d$con,"SELECT Count(*) FROM JA")
+
+dbGetQuery(d$con,"SELECT * FROM JA,t WHERE UPPER(JA.Journal) =UPPER(t.title)")
+dbGetQuery(d$con,"DELETE FROM JA,t WHERE UPPER(JA.Journal) =UPPER(t.title)")
+
+TA<-JA[!toupper(JA$Journal) %in% toupper(t$title),]
+
+copy_to(d,"JA",df=TA,temporary=F)
+db_drop_table(d$con,"JA")
+dbGetQuery(d$con,"DELETE FROM JA FROM JA,t WHERE UPPER(Journal) =UPPER(t.title)")
