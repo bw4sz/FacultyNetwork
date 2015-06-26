@@ -34,7 +34,6 @@ journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
 journaldf<-journaldf[!duplicated(journaldf$query),]
 
-
 #create a data holder
 
 cl<-makeCluster(20,"SOCK")

@@ -457,7 +457,7 @@ queryscopus<-function(runs){
   
   #Standardize capitalization
   df$Journal<-sapply(df$Journal,.simpleCap)
-  
+  #i am making a change.
   
   #turn unknowns to NA, it was just a place holder
   df[df$Author %in% "Unknown","Author"]<-NA
@@ -473,7 +473,6 @@ queryscopus<-function(runs){
   db_insert_into(con=d$con,table="Meta",values=as.data.frame(towrite))
   
   write.table(jp,"Data/JournalSection.txt")
-  return(TRUE)
-} {else return(FALSE)}
+  return(TRUE)}else {return(FALSE)}
 
 }
