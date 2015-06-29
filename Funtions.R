@@ -491,6 +491,8 @@ queryscopus<-function(runs,size=20){
   rm(df,towrite,dat)
   gc()
   
-  return(TRUE)} else {return(FALSE)}
+  return(TRUE)} else {
+    print("Quota Exceeded")
+    return(FALSE)}
 
 }
