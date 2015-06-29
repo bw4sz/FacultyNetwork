@@ -34,15 +34,14 @@ journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
 journaldf<-journaldf[!duplicated(journaldf$query),]
 
-#create a data holder
 
-cl<-makeCluster(20,"SOCK")
-registerDoSNOW(cl)
 
 #loop until we run out of calls. Parallelized in user defined chunks
 r<-TRUE
 while(r){
-r<-queryscopus(runs=20)
+  #define number of journals and cluster size
+  r<-queryscopus(runs=40,size=40)
+  gc()
 }
 
 stopCluster(cl)

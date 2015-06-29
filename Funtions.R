@@ -1,4 +1,5 @@
 #Source functions
+library(proto)
 
 ##Make Query
 scquery<-function(inquery,year){
@@ -416,13 +417,19 @@ CalcDD<-function(x){
 shead<-function(tab){dbGetQuery(d$con,paste("SELECT * FROM",tab,"limit 10"))}
 
 
-queryscopus<-function(runs){
+queryscopus<-function(runs,size=20){
 
+  #create a data holder
+  
+  cl<-makeCluster(size,"SOCK")
+  registerDoSNOW(cl)
+  
   #write a test query that you know works to ensure you have space
   tq<-scquery("AUK","2014")
   
   #set placement of journal
   jp<-read.table("Data/JournalSection.txt")$x
+  print(jp)
   
   #update new
   #how many journals to run?
@@ -431,7 +438,10 @@ queryscopus<-function(runs){
   
   if (tq$status_code==200){
   
-  dat<-foreach(x=jp,.errorhandling = "pass",.packages=c("httr","XML","reshape2","plyr","dplyr","chron","stringr")) %dopar% {
+  dat<-foreach(x=jp,.errorhandling = "pass",.packages=c("httr","XML","proto","reshape2","plyr","dplyr","chron","stringr"),.export="journaldf") %dopar% {
+    #get functions
+    source("Funtions.R")
+    
     #get articles from a journal and parse it
     q<-paste("source-id(",journaldf$ID[x],")",sep="")
     
@@ -441,6 +451,8 @@ queryscopus<-function(runs){
     #parse result
     return(responses)
   }
+  
+  stopCluster(cl)
   
   #if we ran out of calls, figure out where, using a test query
   tq<-scquery("AUK","2014")
@@ -457,13 +469,14 @@ queryscopus<-function(runs){
   
   #Standardize capitalization
   df$Journal<-sapply(df$Journal,.simpleCap)
-  #i am making a change.
   
   #turn unknowns to NA, it was just a place holder
   df[df$Author %in% "Unknown","Author"]<-NA
   
   #write.table(df,"C:/Users/Ben/Dropbox/FacultyNetwork/ParsedDataID.csv",append=T,col.names=F,row.names=F,sep=",")
   df<-df[!is.na(df$DOI),]
+  
+  print(dim(df))
   
   #write journal and DOI table to the JA table
   towrite<-df %>%  distinct(DOI) %>% select(DOI,Journal)
@@ -473,6 +486,11 @@ queryscopus<-function(runs){
   db_insert_into(con=d$con,table="Meta",values=as.data.frame(towrite))
   
   write.table(jp,"Data/JournalSection.txt")
-  return(TRUE)}else {return(FALSE)}
+  
+  #manually remove objects to be sure
+  rm(df,towrite,dat)
+  gc()
+  
+  return(TRUE)} else {return(FALSE)}
 
 }
