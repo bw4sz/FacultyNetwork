@@ -228,7 +228,7 @@ dev.off()
 
 ##View each discipline seperately
 
-```{r}
+```{r,fig.height=8}
 disc<-unique(clookup$Discipline)
 
 #output of the network level statistics
@@ -464,7 +464,7 @@ tmod$From<-str_match(tmod$Combo,"-(.*)")[,2]
 Positive values are significantly increasing connections
 Negative values are significantly decreasing connections
 
-```{r,fig.height=10}
+```{r,fig.height=8}
 tmod$svalue<-scale(tmod$estimate)
 
 ggplot(tmod[tmod$p.value < 0.05 & tmod$term=="Year",],aes(x=To,y=From,fill=estimate)) + geom_tile() + theme_bw() + scale_fill_gradientn(colours=c("blue","gray","red"),limits=c(-max(tmod$estimate),max(tmod$estimate))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(x="",y="")
