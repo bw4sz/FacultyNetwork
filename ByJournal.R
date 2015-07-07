@@ -40,9 +40,8 @@ journaldf<-journaldf[!duplicated(journaldf$query),]
 r<-TRUE
 while(r){
   #define number of journals and cluster size
-  r<-queryscopus(runs=40,size=40)
+  r<-queryscopus(runs=40,size=10)
   gc()
 }
 
-stopCluster(cl)
 #save.image("Journal.RData")
