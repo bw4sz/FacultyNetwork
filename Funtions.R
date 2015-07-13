@@ -417,7 +417,7 @@ CalcDD<-function(x){
 shead<-function(tab){dbGetQuery(d$con,paste("SELECT * FROM",tab,"limit 10"))}
 
 
-queryscopus<-function(runs,size=20){
+queryscopus<-function(runs=20,size=20){
 
   #create a data holder
   
@@ -470,6 +470,11 @@ queryscopus<-function(runs,size=20){
   #Standardize capitalization
   df$Journal<-sapply(df$Journal,.simpleCap)
   
+  if(nrow(df)==0){
+    write.table(jp,"Data/JournalSection.txt")
+    return(TRUE)
+    }
+  
   #turn unknowns to NA, it was just a place holder
   df[df$Author %in% "Unknown","Author"]<-NA
   
@@ -496,3 +501,5 @@ queryscopus<-function(runs,size=20){
     return(FALSE)}
 
 }
+
+
