@@ -40,6 +40,9 @@ source("Funtions.R")
 
 #set knitr options
 opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warning=F,message=F)
+
+#load image if needed
+load("Analysis.RData")
 ```
 
 #Read in data. Processed from ByJournal.R
@@ -130,11 +133,10 @@ tail(ta)
 
 ##How many papers from each discipline over time?
 
-```{r,fig.width=12,fig.height=35}
-class_year<-melt(table(tocompare$Class,tocompare$Year))
-colnames(class_year)<-c("Class","Year","Papers")
+```{r,fig.width=12,fig.height=5}
+class_year<-tocompare %>% select(Discipline,Year,DOI) %>%  group_by(Discipline,Year) %>% summarize(Papers=length(DOI)) 
 
-ggplot(class_year,aes(x=as.factor(Year),y=Papers,group=Class)) + geom_line() + theme_bw() + facet_wrap(~Class,scale="free_y",ncol=2) + labs(x="Year")
+ggplot(class_year,aes(x=Year,y=Papers,col=Discipline)) + geom_line(aes(group=Discipline),size=1.2) + theme_bw() + labs(x="Year")
 ggsave("Figures/Papers_Year.svg",dpi=300)
 ```
 
