@@ -37,9 +37,14 @@ journaldf<-journaldf[!duplicated(journaldf$query),]
 
 
 #loop until we run out of calls. Parallelized in user defined chunks
+
+jp<-0
+write.table(jp,"Data/JournalSection.txt")
+
 r<-TRUE
 while(r){
   #define number of journals and cluster size
+  #set run to 0
   r<-queryscopus(runs=30,size=20)
   gc()
 }

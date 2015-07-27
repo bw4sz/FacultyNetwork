@@ -42,7 +42,7 @@ source("Funtions.R")
 opts_chunk$set(echo=T,cache=F,fig.align='center',fig.height=12,fig.width=14,warning=F,message=F)
 
 #load image if needed
-load("Analysis.RData")
+#load("Analysis.RData")
 ```
 
 #Read in data. Processed from ByJournal.R
@@ -138,6 +138,12 @@ class_year<-tocompare %>% select(Discipline,Year,DOI) %>%  group_by(Discipline,Y
 
 ggplot(class_year,aes(x=Year,y=Papers,col=Discipline)) + geom_line(aes(group=Discipline),size=1.2) + theme_bw() + labs(x="Year")
 ggsave("Figures/Papers_Year.svg",dpi=300)
+
+```
+
+How many journals per discipline?
+```{r}
+tocompare %>% select(Discipline,jname) %>%  group_by(Discipline) %>% summarize(Papers=length(unique(jname)))
 ```
 
 Create matrix of authors in each class - analagous to the site by species matrix used in ecology

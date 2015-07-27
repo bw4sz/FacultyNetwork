@@ -429,12 +429,15 @@ queryscopus<-function(runs=20,size=20){
   
   #set placement of journal
   jp<-read.table("Data/JournalSection.txt")$x
-  print(jp)
-  
+
   #update new
   #how many journals to run?
   #if last run ended in exceed query, run 0!
   jp<-(max(jp)+1):(max(jp)+runs)
+  print(jp)
+  
+  #are there any runs left
+  if(length(journaldf$ID) < min(jp)){return(FALSE)}
   
   if (tq$status_code==200){
   
@@ -502,4 +505,9 @@ queryscopus<-function(runs=20,size=20){
 
 }
 
+#test query function
 
+testquery<-function(){
+  tq<-scquery("AUK","2014")
+  return(tq)
+}
