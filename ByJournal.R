@@ -34,7 +34,8 @@ journaldf<-journaldf[!journaldf$title=="Journal of Biological Chemistry",]
 
 journaldf<-journaldf[!duplicated(journaldf$query),]
 
-
+length(journaldf)
+dim(j)
 
 #loop until we run out of calls. Parallelized in user defined chunks
 
@@ -45,7 +46,7 @@ r<-TRUE
 while(r){
   #define number of journals and cluster size
   #set run to 0
-  r<-queryscopus(runs=30,size=20)
+  r<-queryscopus(runs=20,size=20)
   gc()
 }
 
